@@ -6,7 +6,7 @@ from app.domain.exceptions import PacienteDuplicadoError
 
 
 def _row_to_entity(row: sqlite3.Row) -> Paciente:
-    return Paciente(
+    p = Paciente(
         id=row['id'],
         nome=row['nome'],
         telefone=row['telefone'],
@@ -16,6 +16,9 @@ def _row_to_entity(row: sqlite3.Row) -> Paciente:
         observacoes=row['observacoes'],
         ativo=bool(row['ativo']),
     )
+    if 'ultima_visita' in row.keys():
+        p.ultima_visita = row['ultima_visita']
+    return p
 
 
 class SqlitePacienteRepository(PacienteRepository):
@@ -110,5 +113,28 @@ class SqlitePacienteRepository(PacienteRepository):
                  AND CAST(strftime('%d', data_nascimento) AS INTEGER) = ?
                ORDER BY nome''',
             (mes, dia),
+        ).fetchall()
+        return [_row_to_entity(r) for r in rows]
+
+    def listar_todos_ativos(self) -> list[Paciente]:
+        rows = self._conn.execute(
+            'SELECT * FROM pacientes WHERE ativo = 1 ORDER BY nome'
+        ).fetchall()
+        return [_row_to_entity(r) for r in rows]
+
+    def listar_sem_retorno(self, limite: str, hoje: str) -> list[Paciente]:
+        rows = self._conn.execute(
+            '''SELECT p.*, MAX(a.data_hora_inicio) AS ultima_visita
+               FROM pacientes p
+               JOIN agendamentos a ON a.paciente_id = p.id AND a.status != 'cancelado'
+               WHERE p.ativo = 1
+               GROUP BY p.id
+               HAVING MAX(a.data_hora_inicio) < ?
+                  AND p.id NOT IN (
+                      SELECT paciente_id FROM agendamentos
+                      WHERE data_hora_inicio >= ? AND status NOT IN ('cancelado', 'falta')
+                  )
+               ORDER BY ultima_visita''',
+            (limite, hoje),
         ).fetchall()
         return [_row_to_entity(r) for r in rows]

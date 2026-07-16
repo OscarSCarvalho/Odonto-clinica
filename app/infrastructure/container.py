@@ -7,6 +7,7 @@ from app.infrastructure.db.repositories.sqlite_agendamento_repo import SqliteAge
 from app.infrastructure.db.repositories.sqlite_lembrete_repo import SqliteLembreteRepository
 from app.infrastructure.db.repositories.sqlite_anexo_repo import SqliteAnexoRepository
 from app.infrastructure.db.repositories.sqlite_plano_recorrente_repo import SqlitePlanoRecorrenteRepository
+from app.infrastructure.db.repositories.sqlite_tarefa_retorno_repo import SqliteTarefaRetornoRepository
 from app.infrastructure.notifications.whatsapp_adapter import WhatsAppAdapter
 from app.infrastructure.notifications.email_adapter import EmailAdapter
 from app.application.verificar_conflito import VerificarConflito
@@ -22,6 +23,9 @@ from app.application.sugerir_retorno import SugerirRetorno
 from app.application.relatorio_faltas import RelatorioFaltas
 from app.application.listar_planos_vencendo import ListarPlanosVencendo
 from app.application.avancar_plano_recorrente import AvancarPlanoRecorrente
+from app.application.criar_tarefa_retorno import CriarTarefaRetorno
+from app.application.relatorio_pacientes import RelatorioPacientes
+from app.application.relatorio_desempenho import RelatorioDesempenho
 
 
 def profissional_repo():
@@ -97,7 +101,7 @@ def enviar_lembretes_uc():
 
 
 def obter_dashboard_uc():
-    return ObterDashboard(agendamento_repo(), paciente_repo(), plano_recorrente_repo())
+    return ObterDashboard(agendamento_repo(), paciente_repo(), plano_recorrente_repo(), tarefa_retorno_repo())
 
 
 def sugerir_retorno_uc():
@@ -122,3 +126,19 @@ def listar_planos_vencendo_uc():
 
 def avancar_plano_uc():
     return AvancarPlanoRecorrente(plano_recorrente_repo())
+
+
+def tarefa_retorno_repo():
+    return SqliteTarefaRetornoRepository(get_db())
+
+
+def criar_tarefa_retorno_uc():
+    return CriarTarefaRetorno(tarefa_retorno_repo(), sugerir_retorno_uc())
+
+
+def relatorio_pacientes_uc():
+    return RelatorioPacientes(paciente_repo())
+
+
+def relatorio_desempenho_uc():
+    return RelatorioDesempenho(agendamento_repo())

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Relatório de Pacientes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Relatórios</div>
+    <div class="page-subtitle">Perfil da base de pacientes e quem precisa de atenção</div>
+  </div>
+</div>
+
+{% include 'relatorios/_tabs.html' %}
+
+<div class="dashboard-cols">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Pacientes por faixa etária</div></div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Faixa</th><th>Pacientes</th></tr></thead>
+        <tbody>
+          {% for faixa, total in dados.faixas_etarias.items() %}
+          <tr><td>{{ faixa }} anos</td><td>{{ total }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Pacientes sem retorno</div>
+    </div>
+    <form method="GET" style="display:flex;gap:.5rem;align-items:flex-end;margin-bottom:1rem">
+      <div class="form-group" style="margin:0">
+        <label>Sem visita há mais de (dias)</label>
+        <select name="dias" class="form-control" onchange="this.form.submit()">
+          <option value="30"  {{ 'selected' if dias_sem_retorno == 30  else '' }}>30 dias</option>
+          <option value="60"  {{ 'selected' if dias_sem_retorno == 60  else '' }}>60 dias</option>
+          <option value="90"  {{ 'selected' if dias_sem_retorno == 90  else '' }}>90 dias</option>
+          <option value="180" {{ 'selected' if dias_sem_retorno == 180 else '' }}>180 dias</option>
+        </select>
+      </div>
+    </form>
+    {% if dados.pacientes_sem_retorno %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Paciente</th><th>Telefone</th><th>Última visita</th></tr></thead>
+        <tbody>
+          {% for p in dados.pacientes_sem_retorno %}
+          <tr>
+            <td>{{ p.nome }}</td>
+            <td>{{ p.telefone or '—' }}</td>
+            <td>{{ p.ultima_visita[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="page-subtitle">Nenhum paciente sem retorno nesse período.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -330,6 +330,12 @@ class TestRelatorios:
         assert r.status_code == 302
         assert '/login' in r.headers['Location']
 
+    def test_pacientes_200(self, admin_client):
+        assert admin_client.get('/relatorios/pacientes').status_code == 200
+
+    def test_desempenho_200(self, admin_client):
+        assert admin_client.get('/relatorios/desempenho').status_code == 200
+
 
 class TestRecorrentes:
     def test_index_200(self, admin_client):
@@ -392,3 +398,80 @@ class TestRecorrentes:
             from app.infrastructure.container import plano_recorrente_repo
             plano_atualizado = plano_recorrente_repo().buscar_por_id(plano.id)
         assert plano_atualizado.proxima_data == '2026-08-19'
+
+
+class TestRetornos:
+    def test_index_200(self, admin_client):
+        assert admin_client.get('/retornos/').status_code == 200
+
+    def test_sem_login_redireciona(self, client):
+        r = client.get('/retornos/', follow_redirects=False)
+        assert r.status_code == 302
+        assert '/login' in r.headers['Location']
+
+    def test_concluir_agendamento_com_retorno_cria_tarefa_e_permite_contato(self, admin_client, app):
+        ids = _criar_agendamento(app, status='em_atendimento', retorno_dias=180)
+
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+
+        listagem = admin_client.get('/retornos/')
+        assert 'Paciente Teste' in listagem.data.decode()
+
+        with app.app_context():
+            from app.infrastructure.container import tarefa_retorno_repo
+            tarefa = tarefa_retorno_repo().buscar_por_agendamento(ids['agendamento_id'])
+        assert tarefa is not None
+        assert tarefa.status == 'pendente'
+
+        contatar = admin_client.post(
+            f'/retornos/{tarefa.id}/contatar',
+            data={'observacoes': 'Paciente confirmou retorno por telefone'},
+            follow_redirects=False,
+        )
+        assert contatar.status_code == 302
+
+        listagem_apos = admin_client.get('/retornos/')
+        assert 'Paciente Teste' not in listagem_apos.data.decode()
+
+    def test_concluir_agendamento_sem_retorno_nao_cria_tarefa(self, admin_client, app):
+        ids = _criar_agendamento(app, status='em_atendimento')
+
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+
+        with app.app_context():
+            from app.infrastructure.container import tarefa_retorno_repo
+            tarefa = tarefa_retorno_repo().buscar_por_agendamento(ids['agendamento_id'])
+        assert tarefa is None
+
+    def test_concluir_agendamento_de_plano_recorrente_nao_cria_tarefa_de_retorno(self, admin_client, app):
+        ids = _criar_agendamento(app, status='em_atendimento', retorno_dias=180)
+
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Plano')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Plano'"
+            ).fetchone()['id']
+            db.execute(
+                "INSERT INTO planos_recorrentes (paciente_id, profissional_id, procedimento_id, "
+                "intervalo_dias, proxima_data) VALUES (?,?,?,?,?)",
+                (pac_id, ids['profissional_id'], ids['procedimento_id'], 30, '2026-07-21')
+            )
+            db.commit()
+            plano_id = db.execute(
+                "SELECT id FROM planos_recorrentes WHERE paciente_id=?", (pac_id,)
+            ).fetchone()['id']
+            db.execute(
+                "UPDATE agendamentos SET plano_recorrente_id=? WHERE id=?",
+                (plano_id, ids['agendamento_id'])
+            )
+            db.commit()
+
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+
+        with app.app_context():
+            from app.infrastructure.container import tarefa_retorno_repo
+            tarefa = tarefa_retorno_repo().buscar_por_agendamento(ids['agendamento_id'])
+        assert tarefa is None

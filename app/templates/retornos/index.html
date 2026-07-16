@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Pendentes de Retorno{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Pendentes de Retorno</div>
+    <div class="page-subtitle">Pacientes que concluíram um atendimento com retorno sugerido e ainda não foram contatados</div>
+  </div>
+</div>
+
+<div class="card">
+  {% if tarefas %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Paciente</th><th>Profissional</th><th>Procedimento</th>
+          <th>Retorno sugerido</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tarefas %}
+        <tr>
+          <td>
+            <strong>{{ t.paciente_nome }}</strong>
+            {% if t.paciente_telefone %}<br><span class="page-subtitle">{{ t.paciente_telefone }}</span>{% endif %}
+          </td>
+          <td>{{ t.profissional_nome }}</td>
+          <td>{{ t.procedimento_nome }}</td>
+          <td>{{ t.data_sugerida }}</td>
+          <td>
+            <div class="btn-group">
+              <a class="btn btn-ghost btn-sm"
+                 href="{{ url_for('agenda.novo',
+                                   profissional_id=t.profissional_id,
+                                   paciente_id=t.paciente_id,
+                                   procedimento_id=t.procedimento_id,
+                                   data=t.data_sugerida) }}">
+                Agendar
+              </a>
+              <button type="button" class="btn btn-primary btn-sm"
+                      onclick="document.getElementById('contato-{{ t.id }}').classList.toggle('hidden-form')">
+                Registrar contato
+              </button>
+            </div>
+            <form id="contato-{{ t.id }}" method="POST"
+                  action="{{ url_for('retornos.contatar', id=t.id) }}"
+                  class="hidden-form" style="margin-top:.5rem;display:flex;gap:.5rem">
+              <input type="text" name="observacoes" class="form-control" placeholder="Observação (opcional)">
+              <button type="submit" class="btn btn-primary btn-sm">Confirmar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="page-subtitle">Nenhum retorno pendente de contato no momento.</p>
+  {% endif %}
+</div>
+{% endblock %}

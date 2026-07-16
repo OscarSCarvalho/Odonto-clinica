@@ -36,3 +36,11 @@ class PacienteRepository(ABC):
     @abstractmethod
     def listar_aniversariantes_do_dia(self, mes: int, dia: int) -> list[Paciente]:
         ...
+
+    @abstractmethod
+    def listar_todos_ativos(self) -> list[Paciente]:
+        ...
+
+    @abstractmethod
+    def listar_sem_retorno(self, limite: str, hoje: str) -> list[Paciente]:
+        ...

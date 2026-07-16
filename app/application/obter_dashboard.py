@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from app.domain.repositories.agendamento_repo import AgendamentoRepository
 from app.domain.repositories.paciente_repo import PacienteRepository
 from app.domain.repositories.plano_recorrente_repo import PlanoRecorrenteRepository
+from app.domain.repositories.tarefa_retorno_repo import TarefaRetornoRepository
 
 
 class ObterDashboard:
@@ -11,10 +12,12 @@ class ObterDashboard:
         agendamento_repo: AgendamentoRepository,
         paciente_repo: PacienteRepository,
         plano_recorrente_repo: PlanoRecorrenteRepository,
+        tarefa_retorno_repo: TarefaRetornoRepository,
     ):
         self._agendamentos = agendamento_repo
         self._pacientes = paciente_repo
         self._planos = plano_recorrente_repo
+        self._tarefas_retorno = tarefa_retorno_repo
 
     def executar(self, hoje: date = None) -> dict:
         hoje = hoje or date.today()
@@ -55,4 +58,5 @@ class ObterDashboard:
             'proximos_atendimentos': proximos,
             'aniversariantes': aniversariantes,
             'recorrentes_vencendo': recorrentes_vencendo,
+            'retornos_pendentes': len(self._tarefas_retorno.listar_pendentes()),
         }

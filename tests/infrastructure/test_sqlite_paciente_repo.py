@@ -102,3 +102,59 @@ class TestSqlitePacienteRepo:
                              data_nascimento='1990-07-16'))
         repo.desativar(p.id)
         assert repo.listar_aniversariantes_do_dia(7, 16) == []
+
+    def test_listar_todos_ativos_ignora_inativos(self, conn):
+        repo = _repo(conn)
+        repo.criar(_pac(nome='Ativo', cpf=None, telefone=None))
+        inativo = repo.criar(_pac(nome='Inativo', cpf=None, telefone=None))
+        repo.desativar(inativo.id)
+        nomes = [p.nome for p in repo.listar_todos_ativos()]
+        assert 'Ativo' in nomes
+        assert 'Inativo' not in nomes
+
+    def test_listar_sem_retorno(self, conn, profissional_id, procedimento_id):
+        repo = _repo(conn)
+        sem_retorno = repo.criar(_pac(nome='Sem Retorno', cpf=None, telefone=None))
+        recente = repo.criar(_pac(nome='Visita Recente', cpf=None, telefone=None))
+        nunca_veio = repo.criar(_pac(nome='Nunca Veio', cpf=None, telefone=None))
+
+        conn.execute(
+            "INSERT INTO agendamentos (profissional_id, paciente_id, procedimento_id, "
+            "data_hora_inicio, data_hora_fim, status) VALUES (?,?,?,?,?,?)",
+            (profissional_id, sem_retorno.id, procedimento_id,
+             '2026-01-10 09:00', '2026-01-10 09:30', 'concluido')
+        )
+        conn.execute(
+            "INSERT INTO agendamentos (profissional_id, paciente_id, procedimento_id, "
+            "data_hora_inicio, data_hora_fim, status) VALUES (?,?,?,?,?,?)",
+            (profissional_id, recente.id, procedimento_id,
+             '2026-07-01 09:00', '2026-07-01 09:30', 'concluido')
+        )
+        conn.commit()
+
+        resultado = repo.listar_sem_retorno('2026-05-17', '2026-07-16')
+        nomes = [p.nome for p in resultado]
+        assert 'Sem Retorno' in nomes
+        assert 'Visita Recente' not in nomes
+        assert 'Nunca Veio' not in nomes
+
+    def test_listar_sem_retorno_ignora_quem_tem_agendamento_futuro(self, conn, profissional_id, procedimento_id):
+        repo = _repo(conn)
+        pac = repo.criar(_pac(nome='Com Retorno Marcado', cpf=None, telefone=None))
+
+        conn.execute(
+            "INSERT INTO agendamentos (profissional_id, paciente_id, procedimento_id, "
+            "data_hora_inicio, data_hora_fim, status) VALUES (?,?,?,?,?,?)",
+            (profissional_id, pac.id, procedimento_id,
+             '2026-01-10 09:00', '2026-01-10 09:30', 'concluido')
+        )
+        conn.execute(
+            "INSERT INTO agendamentos (profissional_id, paciente_id, procedimento_id, "
+            "data_hora_inicio, data_hora_fim, status) VALUES (?,?,?,?,?,?)",
+            (profissional_id, pac.id, procedimento_id,
+             '2026-08-01 09:00', '2026-08-01 09:30', 'agendado')
+        )
+        conn.commit()
+
+        resultado = repo.listar_sem_retorno('2026-05-17', '2026-07-16')
+        assert resultado == []

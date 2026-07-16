@@ -1,0 +1,14 @@
+<div class="tabs" style="display:flex;gap:.5rem;margin-bottom:1rem">
+  <a href="{{ url_for('relatorios.faltas') }}"
+     class="btn btn-sm {{ 'btn-primary' if request.endpoint == 'relatorios.faltas' else 'btn-ghost' }}">
+    Faltas e Cancelamentos
+  </a>
+  <a href="{{ url_for('relatorios.pacientes') }}"
+     class="btn btn-sm {{ 'btn-primary' if request.endpoint == 'relatorios.pacientes' else 'btn-ghost' }}">
+    Pacientes
+  </a>
+  <a href="{{ url_for('relatorios.desempenho') }}"
+     class="btn btn-sm {{ 'btn-primary' if request.endpoint == 'relatorios.desempenho' else 'btn-ghost' }}">
+    Desempenho
+  </a>
+</div>

@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}Relatório de Faltas{% endblock %}
+{% block title %}Relatório de Desempenho{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
     <div class="page-title">Relatórios</div>
-    <div class="page-subtitle">Acompanhe ausências por período, profissional e paciente</div>
+    <div class="page-subtitle">Desempenho por profissional e procedimentos mais realizados</div>
   </div>
 </div>
 
@@ -35,20 +35,8 @@
 
 <div class="kpi-grid">
   <div class="kpi-card kpi-accent">
-    <div class="kpi-label">Agendamentos no período</div>
-    <div class="kpi-value">{{ dados.total_agendamentos }}</div>
-  </div>
-  <div class="kpi-card kpi-warning">
-    <div class="kpi-label">Faltas</div>
-    <div class="kpi-value">{{ dados.total_faltas }}</div>
-  </div>
-  <div class="kpi-card kpi-danger">
-    <div class="kpi-label">Cancelamentos</div>
-    <div class="kpi-value">{{ dados.total_cancelamentos }}</div>
-  </div>
-  <div class="kpi-card kpi-teal">
-    <div class="kpi-label">Taxa de ausência</div>
-    <div class="kpi-value">{{ '%.1f'|format(dados.taxa_ausencia) }}%</div>
+    <div class="kpi-label">Atendimentos concluídos</div>
+    <div class="kpi-value">{{ dados.total_concluidos }}</div>
   </div>
 </div>
 
@@ -58,34 +46,38 @@
     {% if dados.por_profissional %}
     <div class="table-wrapper">
       <table>
-        <thead><tr><th>Profissional</th><th>Faltas</th><th>Cancelamentos</th></tr></thead>
+        <thead><tr><th>Profissional</th><th>Atendimentos</th><th>Faturamento</th></tr></thead>
         <tbody>
-          {% for nome, c in dados.por_profissional.items() %}
-          <tr><td>{{ nome }}</td><td>{{ c.falta }}</td><td>{{ c.cancelado }}</td></tr>
+          {% for nome, d in dados.por_profissional %}
+          <tr>
+            <td>{{ nome }}</td>
+            <td>{{ d.atendimentos }}</td>
+            <td>R$ {{ '%.2f'|format(d.faturamento) }}</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="page-subtitle">Nenhuma ausência no período.</p>
+    <p class="page-subtitle">Nenhum atendimento concluído no período.</p>
     {% endif %}
   </div>
 
   <div class="card">
-    <div class="card-header"><div class="card-title">Pacientes com mais ausências</div></div>
-    {% if dados.por_paciente %}
+    <div class="card-header"><div class="card-title">Procedimentos mais realizados</div></div>
+    {% if dados.procedimentos_mais_realizados %}
     <div class="table-wrapper">
       <table>
-        <thead><tr><th>Paciente</th><th>Faltas</th><th>Cancelamentos</th></tr></thead>
+        <thead><tr><th>Procedimento</th><th>Quantidade</th></tr></thead>
         <tbody>
-          {% for nome, c in dados.por_paciente %}
-          <tr><td>{{ nome }}</td><td>{{ c.falta }}</td><td>{{ c.cancelado }}</td></tr>
+          {% for nome, total in dados.procedimentos_mais_realizados %}
+          <tr><td>{{ nome }}</td><td>{{ total }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="page-subtitle">Nenhuma ausência no período.</p>
+    <p class="page-subtitle">Nenhum atendimento concluído no período.</p>
     {% endif %}
   </div>
 </div>

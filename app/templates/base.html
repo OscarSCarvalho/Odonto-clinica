@@ -26,6 +26,8 @@
            class="{{ 'active' if request.blueprint == 'pacientes' else '' }}">Pacientes</a></li>
     <li><a href="{{ url_for('recorrentes.index') }}"
            class="{{ 'active' if request.blueprint == 'recorrentes' else '' }}">Recorrentes</a></li>
+    <li><a href="{{ url_for('retornos.index') }}"
+           class="{{ 'active' if request.blueprint == 'retornos' else '' }}">Retornos</a></li>
     <li><a href="{{ url_for('relatorios.faltas') }}"
            class="{{ 'active' if request.blueprint == 'relatorios' else '' }}">Relatórios</a></li>
     {% endif %}

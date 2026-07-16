@@ -7,6 +7,7 @@ from app.infrastructure.container import (
     profissional_repo, procedimento_repo, paciente_repo, agendamento_repo,
     criar_agendamento_uc, editar_agendamento_uc,
     cancelar_agendamento_uc, listar_agenda_uc, sugerir_retorno_uc, avancar_plano_uc,
+    criar_tarefa_retorno_uc,
 )
 from app.infrastructure.color_utils import darken_hex
 
@@ -194,8 +195,11 @@ def mudar_status(id):
     try:
         editar_agendamento_uc().executar(id, status=novo_status)
         flash(f'Status atualizado para "{_STATUS_LABEL.get(novo_status, novo_status)}".', 'sucesso')
-        if novo_status == 'concluido' and ag and ag.plano_recorrente_id:
-            avancar_plano_uc().executar(ag.plano_recorrente_id, ag.data_hora_inicio)
+        if novo_status == 'concluido' and ag:
+            if ag.plano_recorrente_id:
+                avancar_plano_uc().executar(ag.plano_recorrente_id, ag.data_hora_inicio)
+            else:
+                criar_tarefa_retorno_uc().executar(ag)
     except AgendamentoNaoEditavelError as e:
         flash(str(e), 'erro')
     return redirect(url_for('agenda.editar', id=id))

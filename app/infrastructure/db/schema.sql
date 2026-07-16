@@ -113,3 +113,16 @@ CREATE TABLE IF NOT EXISTS paciente_anexos (
 );
 
 CREATE INDEX IF NOT EXISTS idx_anexos_paciente ON paciente_anexos(paciente_id);
+
+CREATE TABLE IF NOT EXISTS tarefas_retorno (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    agendamento_id INTEGER NOT NULL REFERENCES agendamentos(id),
+    paciente_id    INTEGER NOT NULL REFERENCES pacientes(id),
+    data_sugerida  TEXT    NOT NULL,
+    observacoes    TEXT,
+    status         TEXT    NOT NULL DEFAULT 'pendente' CHECK(status IN ('pendente','contatado')),
+    contato_em     TEXT,
+    criado_em      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tarefas_retorno_status ON tarefas_retorno(status);
