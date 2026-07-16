@@ -625,6 +625,97 @@ CMD ["python", "run.py"]
 
 ---
 
+## SPRINT 7 — Dashboard e Recursos Inspirados em Mercado (pós-lançamento)
+
+**Objetivo:** camada de melhorias inspiradas em funcionalidades da Clinicorp (pesquisa de mercado), adaptadas ao escopo enxuto do projeto — dashboard, check-in, retorno automático, anexos, relatório de faltas e pacientes recorrentes.  
+**Referência:** SPEC.md seção 6.1 (FASE 4).  
+**Critério de aceite do sprint:** suite completa (domínio → interfaces) passando 100%; todas as telas navegáveis sem erro 500.  
+**Status: concluído.**
+
+---
+
+### T34 — Use Case + Blueprint: Dashboard
+**Camada:** [A] + [IF] + [FE]  
+**Dependências:** T13, T16
+
+`app/application/obter_dashboard.py` — agrega agendamentos do dia (contagem por status, faturamento previsto/realizado, próximos atendimentos), aniversariantes (`PacienteRepository.listar_aniversariantes_do_dia`) e planos de recorrência vencendo em 7 dias.  
+`app/interfaces/dashboard/routes.py` — nova página inicial pós-login, substitui `/agenda` como redirect padrão do login.
+
+**Aceite:** `pytest tests/application/test_obter_dashboard.py`; `/dashboard` como nova home autenticada.
+
+---
+
+### T35 — Check-in de chegada (status `aguardando`)
+**Camada:** [D] + [IF] + [FE]  
+**Dependências:** T06, T21
+
+Adiciona `aguardando` ao enum de status (schema + `_STATUS_LABEL`/`_STATUS_PROXIMOS` em `agenda/routes.py`), entre `confirmado` e `em_atendimento`. Reaproveita o mecanismo genérico `POST /agenda/status/<id>` — nenhuma rota nova necessária.
+
+**Aceite:** `test_checkin_muda_status_para_aguardando` em `tests/interfaces/test_rotas.py`.
+
+---
+
+### T36 — Use Case: SugerirRetorno
+**Camada:** [D] + [A] + [IF] + [FE]  
+**Dependências:** T10
+
+Campo `retorno_dias` (opcional) em `Procedimento`. `app/application/sugerir_retorno.py` calcula `data_hora_inicio + retorno_dias` quando o agendamento concluído tem procedimento com retorno configurado. Exibido na tela de edição com botão que pré-preenche `/agenda/novo`.
+
+**Aceite:** `pytest tests/application/test_sugerir_retorno.py`; `test_editar_exibe_sugestao_de_retorno_apos_concluido`.
+
+---
+
+### T37 — Anexos do paciente (fotos e exames)
+**Camada:** [D] + [I] + [IF] + [FE]  
+**Dependências:** T16
+
+Nova entidade `Anexo` + `AnexoRepository`/`SqliteAnexoRepository` + tabela `paciente_anexos`. Upload via `multipart/form-data` (extensões `.jpg/.jpeg/.png/.pdf`, máx. 8MB via `MAX_CONTENT_LENGTH`), armazenamento em `UPLOAD_FOLDER/<paciente_id>/` com nome único (`uuid4`), download via `send_from_directory`, exclusão remove arquivo + registro.
+
+**Aceite:** `pytest tests/infrastructure/test_sqlite_anexo_repo.py`; `test_upload_download_e_exclusao_de_anexo`; `test_upload_rejeita_extensao_nao_permitida`.
+
+---
+
+### T38 — Use Case: RelatorioFaltas
+**Camada:** [A] + [IF] + [FE]  
+**Dependências:** T13, T17
+
+`app/application/relatorio_faltas.py` reaproveita `listar_por_periodo` e agrega faltas/cancelamentos por profissional e por paciente, com taxa de ausência. Nova página `/relatorios/faltas` com filtro de período e profissional.
+
+**Aceite:** `pytest tests/application/test_relatorio_faltas.py`; `TestRelatorios` em `tests/interfaces/test_rotas.py`.
+
+---
+
+### T39 — Domínio + Infra: PlanoRecorrente
+**Camada:** [D] + [I]  
+**Dependências:** T08
+
+Nova entidade `PlanoRecorrente` (paciente, profissional, procedimento, intervalo_dias, proxima_data, horario_preferido, ativo) + `PlanoRecorrenteRepository`/`SqlitePlanoRecorrenteRepository` + tabela `planos_recorrentes`. Coluna `plano_recorrente_id` (opcional) em `agendamentos` para vincular um agendamento ao plano que o originou.
+
+**Aceite:** `pytest tests/infrastructure/test_sqlite_plano_recorrente_repo.py`.
+
+---
+
+### T40 — Use Cases: ListarPlanosVencendo e AvancarPlanoRecorrente
+**Camada:** [A]  
+**Dependências:** T39
+
+`app/application/listar_planos_vencendo.py` — filtra planos ativos com `proxima_data` dentro de uma janela de dias (RN-08).  
+`app/application/avancar_plano_recorrente.py` — ao concluir um agendamento vinculado a um plano, avança `proxima_data` em `intervalo_dias` a partir da data do atendimento (RN-09); não avança planos pausados ou inexistentes.
+
+**Aceite:** `pytest tests/application/test_listar_planos_vencendo.py tests/application/test_avancar_plano_recorrente.py`.
+
+---
+
+### T41 — Blueprint: Recorrentes + integração com ficha do paciente e agenda
+**Camada:** [IF] + [FE]  
+**Dependências:** T40
+
+`app/interfaces/recorrentes/routes.py` — painel `/recorrentes` com filtro de janela (7/14/30/90 dias) e botão **Agendar** que pré-preenche `/agenda/novo` (incluindo `plano_recorrente_id`). Ficha do paciente ganha seção para criar/pausar/reativar planos. `agenda/routes.py::mudar_status` chama `AvancarPlanoRecorrente` quando o agendamento concluído tem `plano_recorrente_id`.
+
+**Aceite:** `test_fluxo_completo_agendar_e_concluir_avanca_plano` (ciclo completo: criar plano → agendar → concluir → plano avança) e `test_criar_pausar_e_reativar_plano_recorrente` em `tests/interfaces/test_rotas.py`.
+
+---
+
 ## Ordem de Execução Recomendada (Squad Beta)
 
 ```
@@ -635,6 +726,7 @@ Sprint 3: T18 → T19 → T20 → T21 → T22  (T18/T19/T20 paralelos após Spri
 Sprint 4: T23 → T24 → T25
 Sprint 5: T26 → T27 → T28 → T29 → T30  (T27/T28 paralelos)
 Sprint 6: T31 → T32 → T33
+Sprint 7: T34 → T35 → T36 → T37 → T38 → T39 → T40 → T41  (T34–T38 paralelos entre si; T39→T40→T41 sequencial)
 ```
 
 ---
@@ -650,7 +742,8 @@ Sprint 6: T31 → T32 → T33
 | Sprint 4 — Autoagendamento Público | T23–T25 | 10h |
 | Sprint 5 — Lembretes Automáticos | T26–T30 | 12h |
 | Sprint 6 — DevOps & Testes | T31–T33 | 8h |
-| **Total** | **33 tarefas** | **~77h** |
+| Sprint 7 — Dashboard & Recursos de Mercado (pós-lançamento) | T34–T41 | ~24h |
+| **Total** | **41 tarefas** | **~101h** |
 
 ---
 

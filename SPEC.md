@@ -23,10 +23,12 @@ Construir um módulo de agenda visual para clínicas odontológicas e estéticas
 | Entidade | Atributos-chave |
 |---|---|
 | `Profissional` | id, nome, cor_hex, horario_inicio, horario_fim, dias_semana |
-| `Procedimento` | id, nome, duracao_minutos, cor_hex |
+| `Procedimento` | id, nome, duracao_minutos, cor_hex, preco_base, retorno_dias |
 | `Paciente` | id, nome, telefone, email, cpf |
-| `Agendamento` | id, profissional_id, paciente_id, procedimento_id, data_hora_inicio, data_hora_fim, status, origem |
+| `Agendamento` | id, profissional_id, paciente_id, procedimento_id, data_hora_inicio, data_hora_fim, status, origem, plano_recorrente_id |
 | `LembreteEnviado` | id, agendamento_id, tipo, antecedencia_h, status |
+| `Anexo` | id, paciente_id, nome_original, caminho_arquivo, criado_em |
+| `PlanoRecorrente` | id, paciente_id, profissional_id, procedimento_id, intervalo_dias, proxima_data, horario_preferido, ativo |
 
 ---
 
@@ -37,8 +39,10 @@ Construir um módulo de agenda visual para clínicas odontológicas e estéticas
 - **RN-03:** Agendamentos só podem ser criados dentro do expediente do profissional (dias e horários configurados).
 - **RN-04:** Apenas usuários autenticados (`admin` ou `recepcao`) podem criar/editar/cancelar agendamentos internos.
 - **RN-05:** O link de autoagendamento é público (sem autenticação), mas os slots exibidos devem respeitar RN-01 e RN-03.
-- **RN-06:** Status permitidos: `agendado → confirmado → em_atendimento → concluido` ou `agendado/confirmado → cancelado/falta`.
+- **RN-06:** Status permitidos: `agendado → confirmado → aguardando → em_atendimento → concluido` ou `agendado/confirmado/aguardando → cancelado/falta`. `aguardando` representa o check-in de chegada do paciente.
 - **RN-07:** Agendamentos com status `cancelado` ou `falta` não bloqueiam o horário para novas marcações.
+- **RN-08:** Um plano de recorrência nunca gera agendamento automaticamente — apenas sinaliza a próxima data prevista; a criação do agendamento é sempre uma ação humana (recepção/admin).
+- **RN-09:** Ao concluir um agendamento vinculado a um plano de recorrência, o sistema avança `proxima_data` do plano em `intervalo_dias` a partir da data do atendimento concluído. Agendamentos cancelados ou marcados como falta não avançam o plano.
 
 ---
 
@@ -231,17 +235,95 @@ Construir um módulo de agenda visual para clínicas odontológicas e estéticas
 
 ---
 
+## 6.1 FASE 4 — Dashboard e Recursos Inspirados em Mercado (Clinicorp)
+
+Fase adicionada após a Fase 3, com melhorias inspiradas em funcionalidades de sistemas de mercado (Clinicorp), adaptadas ao escopo enxuto do projeto.
+
+### UC-13: Visualizar Dashboard do dia
+
+**Dado** que o usuário autenticado acessa `/dashboard`  
+**Então** o sistema exibe: total de agendamentos hoje, faturamento previsto, faturamento realizado, contagem de faltas hoje, até 5 próximos atendimentos, aniversariantes do dia e planos de recorrência vencendo nos próximos 7 dias
+
+**Regra:** faturamento previsto soma `procedimento.preco_base` de todos os agendamentos do dia exceto `cancelado`/`falta`; faturamento realizado soma apenas os `concluido`.
+
+---
+
+### UC-14: Check-in de chegada
+
+**Dado** que existe um agendamento com status `agendado` ou `confirmado`  
+**Quando** a recepção marca o paciente como presente  
+**Então** o status muda para `aguardando` (RN-06), reutilizando o mesmo mecanismo de troca de status já existente (`POST /agenda/status/<id>`)
+
+---
+
+### UC-15: Retorno automático sugerido
+
+**Dado** que um procedimento tem `retorno_dias` configurado (ex: `180` para clareamento semestral)  
+**Quando** um agendamento desse procedimento é marcado como `concluido`  
+**Então** a tela de edição do agendamento exibe a data sugerida de retorno (`data_hora_inicio + retorno_dias`) com um botão que pré-preenche um novo agendamento (mesmo profissional e paciente)
+
+**Quando** o procedimento não tem `retorno_dias` configurado  
+**Então** nenhuma sugestão é exibida
+
+---
+
+### UC-16: Anexar arquivo ao paciente
+
+**Dado** que o usuário (admin/recepção) está na ficha de um paciente  
+**Quando** envia um arquivo `.jpg`, `.jpeg`, `.png` ou `.pdf` de até 8MB  
+**Então** o arquivo é salvo em `UPLOAD_FOLDER/<paciente_id>/` com nome único gerado (`uuid4 + extensão`) e o nome original é preservado para exibição/download
+
+**Quando** o arquivo tem extensão não permitida  
+**Então** o sistema rejeita com mensagem `"Formato não permitido. Envie JPG, PNG ou PDF."` sem persistir nada
+
+---
+
+### UC-17: Relatório de faltas e cancelamentos
+
+**Dado** que o usuário acessa `/relatorios/faltas` com um período (padrão: mês corrente) e profissional opcional  
+**Então** o sistema retorna: total de agendamentos no período, total de faltas, total de cancelamentos, taxa de ausência (`(faltas+cancelamentos)/total`), agrupamento por profissional e por paciente (ordenado pelos que mais faltaram/cancelaram)
+
+---
+
+### UC-18: Plano de recorrência do paciente
+
+**Dado** que o usuário está na ficha de um paciente  
+**Quando** cadastra um plano de recorrência com profissional, procedimento, intervalo em dias, próxima data e horário preferido  
+**Então** o plano fica disponível para acompanhamento em `/recorrentes` (RN-08)
+
+**Quando** o usuário pausa um plano ativo  
+**Então** ele deixa de aparecer na listagem de vencendo, mas permanece cadastrado (pode ser reativado)
+
+---
+
+### UC-19: Painel de recorrentes vencendo e avanço do plano
+
+**Dado** que existem planos de recorrência ativos  
+**Quando** o usuário acessa `/recorrentes` com uma janela de dias (7/14/30/90)  
+**Então** o sistema lista os planos cuja `proxima_data` está dentro da janela (incluindo atrasados), ordenados pela data mais próxima, com um botão **Agendar** que pré-preenche `/agenda/novo` (profissional, paciente, procedimento, data, horário e `plano_recorrente_id`)
+
+**Dado** que um agendamento criado a partir de um plano é concluído  
+**Então** o plano avança `proxima_data` automaticamente (RN-09)
+
+**Caso de borda CB-09:** agendamento vinculado a um plano é cancelado ou marcado como falta — o plano **não** avança e continua aparecendo como vencido/atrasado até que um novo agendamento seja concluído.
+
+---
+
 ## 7. Autenticação e Controle de Acesso
 
 | Rota | Perfis permitidos |
 |---|---|
+| `/dashboard` | admin, recepcao, profissional |
 | `/agenda` (visualização) | admin, recepcao, profissional |
 | `/agenda/novo` | admin, recepcao |
 | `/agenda/editar/:id` | admin, recepcao |
 | `/agenda/cancelar/:id` | admin, recepcao |
+| `/agenda/status/:id` (inclui check-in) | admin, recepcao |
 | `/profissionais/*` | admin |
 | `/procedimentos/*` | admin |
-| `/pacientes/*` | admin, recepcao |
+| `/pacientes/*` (inclui anexos e planos recorrentes) | admin, recepcao |
+| `/recorrentes` | admin, recepcao |
+| `/relatorios/*` | admin, recepcao |
 | `/configuracoes/*` | admin |
 | `/agendar/:slug` | público (sem autenticação) |
 | `/api/agenda/eventos` | admin, recepcao, profissional |
@@ -263,7 +345,8 @@ Construir um módulo de agenda visual para clínicas odontológicas e estéticas
 ## 9. Fora de Escopo (explícito)
 
 - Multi-tenant / múltiplas unidades (roadmap Plano Avançado — não implementar agora).
-- Integração com prontuário eletrônico completo (simplificado via `observacoes` por ora).
-- Integração com módulo financeiro (gerar lançamento ao concluir agendamento — roadmap Fase 4).
+- Integração com prontuário eletrônico completo (odontograma, anamnese digital — hoje simplificado via `observacoes` e anexos de arquivo).
+- Módulo financeiro completo (contas a pagar/receber, conciliação bancária — hoje há apenas indicadores de faturamento previsto/realizado).
 - App mobile nativo.
 - Pagamento online no autoagendamento.
+- Criação automática de agendamento a partir de plano de recorrência sem intervenção humana (decisão de produto — RN-08).

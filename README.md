@@ -6,13 +6,19 @@ Sistema web de agendamento para clínicas odontológicas e estéticas. Permite q
 
 ## Funcionalidades
 
+- **Dashboard** com indicadores do dia (agendamentos, faturamento previsto/realizado, faltas), próximos atendimentos, aniversariantes e recorrentes vencendo
 - **Agenda visual** com FullCalendar (visualizações dia / semana / mês), cores por procedimento e destaque do expediente de cada profissional
 - **Prevenção automática de conflito de horário** por profissional, com mensagem detalhada em caso de sobreposição
+- **Check-in de chegada** — status `aguardando` para marcar o paciente como presente na clínica antes do atendimento
+- **Retorno automático sugerido** — ao concluir um atendimento de um procedimento com retorno configurado (ex: clareamento a cada 180 dias), o sistema sugere a próxima data com um clique para agendar
+- **Pacientes recorrentes** — planos de manutenção periódica (ex: aparelho ortodôntico mensal) com painel de acompanhamento de quem está vencendo/atrasado e agendamento assistido a partir do plano
+- **Anexos do paciente** — upload, download e exclusão de fotos e exames (JPG/PNG/PDF)
+- **Relatório de faltas e cancelamentos** — indicadores por período, profissional e paciente
 - **CRUD completo** de profissionais, procedimentos e pacientes
 - **Autoagendamento público** em 4 passos via link sem login — o paciente escolhe profissional, procedimento, data e horário
 - **Lembretes automáticos** por WhatsApp (Evolution API) e e-mail (SMTP), configuráveis em antecedência e canal
 - **Controle de acesso por perfil** (admin / recepção / profissional)
-- **132 testes automatizados** cobrindo domínio, casos de uso, repositórios e rotas
+- **181 testes automatizados** cobrindo domínio, casos de uso, repositórios e rotas
 - **Docker** para execução em qualquer ambiente
 - **CI/CD** com GitHub Actions (lint → testes → build Docker) e backup diário automático do banco
 
@@ -147,7 +153,20 @@ Também são criados: **1 profissional** (Dr. Carlos Silva — Ortodontia) e **3
 
 ### Login
 
-Acesse `http://localhost:5000`, insira e-mail e senha e clique em **Entrar**. O sistema redireciona para a agenda automaticamente.
+Acesse `http://localhost:5000`, insira e-mail e senha e clique em **Entrar**. O sistema redireciona para o **Dashboard** automaticamente.
+
+---
+
+### Dashboard
+
+Rota: `/dashboard`  
+Perfis: admin, recepção, profissional
+
+Painel do dia, com:
+- **Agendamentos hoje**, **faturamento previsto**, **faturamento realizado** e **faltas hoje**
+- **Próximos atendimentos** do dia (até 5, ordenados por horário)
+- **Aniversariantes de hoje**
+- **Recorrentes vencendo em 7 dias** — atalho direto para a tela de [Recorrentes](#pacientes-recorrentes)
 
 ---
 
@@ -179,12 +198,18 @@ Em caso de conflito de horário, o sistema exibe uma mensagem descritiva com o a
 O fluxo de status permitido é:
 
 ```
-agendado → confirmado → em_atendimento → concluido
-agendado/confirmado → cancelado
-agendado/confirmado/em_atendimento → falta
+agendado → confirmado → aguardando → em_atendimento → concluido
+agendado/confirmado/aguardando → cancelado
+agendado/confirmado/aguardando → falta
 ```
 
+`aguardando` representa o **check-in de chegada** — marque o paciente como presente assim que ele chegar à recepção, antes de chamá-lo para o atendimento.
+
 Para alterar o status, abra o evento no calendário ou acesse `/agenda/editar/<id>`.
+
+#### Retorno automático sugerido
+
+Se o procedimento do agendamento tiver um **retorno sugerido** configurado (campo "Retorno sugerido (dias)" em Procedimentos), ao marcar o agendamento como **Concluído** a tela de edição exibe uma caixa **"Retorno sugerido: dd/mm/aaaa"** com um botão **Agendar retorno** que abre um novo agendamento já pré-preenchido (profissional, paciente, data e horário).
 
 ---
 
@@ -213,6 +238,7 @@ Cada procedimento possui:
 - **Duração em minutos** (mínimo 5 min) — usada para calcular o término do agendamento automaticamente
 - **Cor** (hex `#RRGGBB`) — usada como cor do evento no calendário
 - **Preço base** (opcional)
+- **Retorno sugerido em dias** (opcional) — ao concluir um agendamento deste procedimento, o sistema sugere a data do próximo retorno (ex: `180` para clareamento semestral)
 
 ---
 
@@ -224,6 +250,14 @@ Perfis: admin, recepção
 - **Busca por nome** (mínimo 3 caracteres, máximo 10 resultados)
 - **Cadastro** com nome, telefone, e-mail, CPF e data de nascimento
 - CPF é único — tentativa de cadastrar CPF duplicado exibe link para o cadastro existente
+
+#### Anexos (fotos e exames)
+
+Na ficha do paciente (`/pacientes/editar/<id>`), a seção **Anexos** permite enviar arquivos JPG, PNG ou PDF (até 8MB), listar os já enviados com data de envio, baixar e remover. Os arquivos ficam em `UPLOAD_FOLDER` (padrão `./data/uploads/<paciente_id>/`), fora do controle de versão.
+
+#### Paciente recorrente (manutenção periódica)
+
+Ainda na ficha do paciente, a seção **Paciente recorrente** cadastra um plano de manutenção: profissional, procedimento, intervalo em dias, próxima data e horário preferido — por exemplo, manutenção de aparelho ortodôntico a cada 30 dias. Um plano pode ser **pausado** e **reativado** a qualquer momento. Veja a seção [Pacientes Recorrentes](#pacientes-recorrentes) para o painel de acompanhamento.
 
 ---
 
@@ -259,6 +293,28 @@ Configure regras de lembrete indicando:
 O scheduler roda a cada **15 minutos** verificando agendamentos que precisam de lembrete. Em caso de falha no envio, o sistema tenta novamente até **3 vezes** com intervalo de 15 minutos, registrando o erro em log.
 
 Para configurar os canais, preencha as variáveis de ambiente correspondentes (veja abaixo).
+
+---
+
+### Relatório de faltas e cancelamentos
+
+Rota: `/relatorios/faltas`  
+Perfis: admin, recepção
+
+Filtre por período (padrão: mês corrente) e, opcionalmente, por profissional. O relatório mostra:
+- **Agendamentos no período**, **faltas**, **cancelamentos** e **taxa de ausência**
+- Agrupamento **por profissional** e **por paciente** (ordenado pelos que mais faltaram/cancelaram)
+
+---
+
+### Pacientes Recorrentes
+
+Rota: `/recorrentes`  
+Perfis: admin, recepção
+
+Painel de acompanhamento de todos os **planos de recorrência** ativos (cadastrados na ficha do paciente), com filtro por janela de vencimento (7 / 14 / 30 / 90 dias). Cada linha mostra paciente, profissional, procedimento, próxima data e situação (**No prazo** ou **Atrasado**), com botão **Agendar** que abre a tela de novo agendamento pré-preenchida.
+
+> O sistema **nunca cria agendamentos sozinho** a partir de um plano recorrente — ele só sinaliza quando está vencendo. A recepção confirma o horário real e cria o agendamento manualmente. Quando esse agendamento é concluído, o plano avança automaticamente para a próxima data (`data do atendimento + intervalo_dias`).
 
 ---
 
@@ -302,16 +358,24 @@ profissionais
   └── dias_semana (CSV: 0=dom, 1=seg ... 6=sab)
 
 procedimentos
-  └── duracao_minutos, cor_hex, preco_base
+  └── duracao_minutos, cor_hex, preco_base, retorno_dias (opcional)
 
 pacientes
   └── cpf (único)
 
-agendamentos
+planos_recorrentes
+  ├── paciente_id     → pacientes
   ├── profissional_id → profissionais
-  ├── paciente_id    → pacientes
   ├── procedimento_id → procedimentos
-  ├── status: agendado | confirmado | em_atendimento | concluido | cancelado | falta
+  ├── intervalo_dias, proxima_data, horario_preferido
+  └── ativo (pausado/ativo)
+
+agendamentos
+  ├── profissional_id     → profissionais
+  ├── paciente_id         → pacientes
+  ├── procedimento_id     → procedimentos
+  ├── plano_recorrente_id → planos_recorrentes (opcional)
+  ├── status: agendado | confirmado | aguardando | em_atendimento | concluido | cancelado | falta
   └── origem: interno | autoagendamento
 
 lembretes_enviados
@@ -320,6 +384,9 @@ lembretes_enviados
 
 config_lembretes
   └── antecedencia_h, tipo: whatsapp | email
+
+paciente_anexos
+  └── paciente_id → pacientes (nome_original, caminho_arquivo)
 ```
 
 Para inspecionar o banco diretamente:
@@ -354,7 +421,7 @@ pytest tests/interfaces/
 
 Os testes de `domain/` e `application/` rodam **sem nenhum banco ativo** — confirmando o isolamento da Clean Architecture. Os testes de `infrastructure/` usam banco em memória (`:memory:`).
 
-**Cobertura atual: 132 testes passando.**
+**Cobertura atual: 181 testes passando.**
 
 ---
 
@@ -394,11 +461,14 @@ Para ativar o backup, configure os seguintes **secrets** no repositório GitHub:
 
 | Rota | admin | recepção | profissional | público |
 |---|:---:|:---:|:---:|:---:|
+| `/dashboard` | ✅ | ✅ | ✅ | ❌ |
 | `/agenda` (visualizar) | ✅ | ✅ | ✅ (próprios) | ❌ |
 | `/agenda/novo` e `/editar` | ✅ | ✅ | ❌ | ❌ |
 | `/profissionais/*` | ✅ | ❌ | ❌ | ❌ |
 | `/procedimentos/*` | ✅ | ❌ | ❌ | ❌ |
-| `/pacientes/*` | ✅ | ✅ | ❌ | ❌ |
+| `/pacientes/*` (inclui anexos e planos recorrentes) | ✅ | ✅ | ❌ | ❌ |
+| `/recorrentes` | ✅ | ✅ | ❌ | ❌ |
+| `/relatorios/*` | ✅ | ✅ | ❌ | ❌ |
 | `/configuracoes/*` | ✅ | ❌ | ❌ | ❌ |
 | `/agendar` | ✅ | ✅ | ✅ | ✅ |
 
@@ -410,7 +480,8 @@ Para ativar o backup, configure os seguintes **secrets** no repositório GitHub:
 .
 ├── app/
 │   ├── domain/                    # Entidades, ports, exceções
-│   │   ├── entities/
+│   │   ├── entities/              # Agendamento, Paciente, Procedimento, Profissional,
+│   │   │                          # Anexo, PlanoRecorrente, Lembrete
 │   │   ├── repositories/          # Interfaces (ABCs)
 │   │   └── exceptions.py
 │   ├── application/               # Casos de uso
@@ -419,21 +490,29 @@ Para ativar o backup, configure os seguintes **secrets** no repositório GitHub:
 │   │   ├── listar_slots_disponiveis.py
 │   │   ├── autoagendar_paciente.py
 │   │   ├── enviar_lembretes.py
+│   │   ├── obter_dashboard.py
+│   │   ├── sugerir_retorno.py
+│   │   ├── relatorio_faltas.py
+│   │   ├── listar_planos_vencendo.py
+│   │   ├── avancar_plano_recorrente.py
 │   │   └── ...
 │   ├── infrastructure/            # Implementações concretas
 │   │   ├── db/
 │   │   │   ├── schema.sql
 │   │   │   ├── connection.py
-│   │   │   └── repositories/      # SqliteXxxRepository
+│   │   │   └── repositories/      # SqliteXxxRepository (inclui anexo e plano_recorrente)
 │   │   ├── notifications/         # WhatsApp + e-mail adapters
 │   │   ├── scheduler.py
 │   │   └── container.py           # Injeção de dependência
 │   ├── interfaces/                # Blueprints Flask + templates
+│   │   ├── dashboard/
 │   │   ├── agenda/
 │   │   ├── auth/
-│   │   ├── pacientes/
+│   │   ├── pacientes/             # inclui anexos e planos recorrentes
 │   │   ├── profissionais/
 │   │   ├── procedimentos/
+│   │   ├── recorrentes/           # painel de pacientes recorrentes vencendo
+│   │   ├── relatorios/            # relatório de faltas/cancelamentos
 │   │   ├── configuracoes/
 │   │   └── publico/               # Autoagendamento sem login
 │   ├── static/                    # CSS e JS
@@ -466,10 +545,11 @@ Para ativar o backup, configure os seguintes **secrets** no repositório GitHub:
 ## Fora do escopo atual (roadmap)
 
 - Multi-tenant / múltiplas unidades
-- Módulo financeiro (lançamentos ao concluir agendamento)
-- Prontuário eletrônico completo
+- Módulo financeiro completo (contas a pagar/receber, conciliação bancária — hoje o sistema só mostra faturamento previsto/realizado no dashboard e relatórios)
+- Prontuário eletrônico completo (odontograma, anamnese digital — hoje há apenas anexos de fotos/exames e campo de observações)
 - App mobile nativo
 - Pagamento online no autoagendamento
+- Criação automática de agendamento a partir de plano de recorrência (hoje é sempre assistida pela recepção, por design)
 
 ---
 

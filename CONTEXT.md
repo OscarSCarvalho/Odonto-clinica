@@ -1,9 +1,9 @@
 # CONTEXT.md — OdontoClinica / SistemaGestao
 
-**Versão:** 1.0  
-**Data:** 2026-07-15  
+**Versão:** 1.1  
+**Data:** 2026-07-16 (atualizado — Fase 4)  
 **Agente responsável:** Agent Software Architect (Squad Alpha)  
-**Status:** Fase 0 concluída
+**Status:** Fases 0–4 concluídas (ver seção 6)
 
 ---
 
@@ -71,64 +71,58 @@ domain ← application ← infrastructure
 Nenhuma camada interna importa camada externa. O domínio é agnóstico a Flask, sqlite3 e HTTP.
 
 ### Estrutura de Diretórios
+
+> Estrutura real após as Fases 0–4 (a versão original desta seção, escrita antes da implementação, previa `dtos.py` e `migrations/` que não vieram a existir — schema evolui direto em `schema.sql`, sem migrations versionadas). A árvore completa e sempre atual está em `README.md`, seção "Estrutura de arquivos".
+
 ```
 SistemaGestao/
 ├── app/
 │   ├── domain/
 │   │   ├── entities/
-│   │   │   ├── agendamento.py       # Entidade Agendamento + regras puras
+│   │   │   ├── agendamento.py       # + plano_recorrente_id (Fase 4)
 │   │   │   ├── profissional.py
-│   │   │   ├── procedimento.py
-│   │   │   └── paciente.py
-│   │   ├── repositories/
-│   │   │   ├── agendamento_repo.py  # Interface (abstract)
-│   │   │   ├── profissional_repo.py
-│   │   │   └── paciente_repo.py
-│   │   └── exceptions.py            # ConflitodeHorarioError, PacienteNaoEncontradoError, etc.
+│   │   │   ├── procedimento.py      # + retorno_dias (Fase 4)
+│   │   │   ├── paciente.py
+│   │   │   ├── lembrete.py          # Fase 3
+│   │   │   ├── anexo.py             # Fase 4
+│   │   │   └── plano_recorrente.py  # Fase 4
+│   │   ├── repositories/            # Interfaces (ABCs), uma por entidade
+│   │   └── exceptions.py
 │   │
-│   ├── application/
-│   │   ├── criar_agendamento.py     # Use Case
-│   │   ├── verificar_conflito.py    # Use Case (regra central)
-│   │   ├── listar_agenda.py         # Use Case
-│   │   ├── cancelar_agendamento.py  # Use Case
-│   │   └── autoagendar_paciente.py  # Use Case (Fase 2)
+│   ├── application/                 # Casos de uso — ver PLAN.md para lista completa
 │   │
 │   ├── infrastructure/
 │   │   ├── db/
-│   │   │   ├── connection.py        # Singleton de conexão sqlite3
-│   │   │   ├── schema.sql           # DDL completo
-│   │   │   └── repositories/
-│   │   │       ├── sqlite_agendamento_repo.py
-│   │   │       ├── sqlite_profissional_repo.py
-│   │   │       └── sqlite_paciente_repo.py
-│   │   └── notifications/
-│   │       ├── whatsapp_adapter.py  # Fase 3
-│   │       └── email_adapter.py     # Fase 3
+│   │   │   ├── connection.py
+│   │   │   ├── schema.sql
+│   │   │   └── repositories/        # SqliteXxxRepository, uma por entidade
+│   │   ├── notifications/           # Fase 3
+│   │   ├── scheduler.py             # Fase 3
+│   │   └── container.py             # Injeção de dependência
 │   │
 │   ├── interfaces/
+│   │   ├── dashboard/                # Fase 4
 │   │   ├── agenda/
-│   │   │   ├── routes.py            # Blueprint Flask
-│   │   │   └── dtos.py              # Request/Response schemas
+│   │   ├── auth/
 │   │   ├── profissionais/
-│   │   │   └── routes.py
-│   │   ├── pacientes/
-│   │   │   └── routes.py
-│   │   └── publico/
-│   │       └── routes.py            # Link de autoagendamento (Fase 2)
+│   │   ├── procedimentos/
+│   │   ├── pacientes/                # + anexos e planos recorrentes (Fase 4)
+│   │   ├── recorrentes/              # Fase 4
+│   │   ├── relatorios/                # Fase 4
+│   │   ├── configuracoes/            # Fase 3
+│   │   └── publico/                  # Fase 2
 │   │
 │   ├── static/
 │   │   ├── css/
 │   │   └── js/
-│   └── templates/
-│       ├── agenda/
-│       ├── profissionais/
-│       └── publico/
+│   └── templates/                    # um diretório por blueprint
 │
 ├── tests/
 │   ├── domain/
-│   └── application/
+│   ├── application/
+│   ├── infrastructure/
+│   └── interfaces/
 │
-├── migrations/          # Scripts SQL versionados
 ├── config.py
 ├── run.py
 ├── CONTEXT.md
@@ -140,6 +134,8 @@ SistemaGestao/
 ---
 
 ## 4. Schema do Banco de Dados (sqlite3)
+
+> Atualizado na Fase 4 (ver seção 6) para refletir o schema real em `app/infrastructure/db/schema.sql`. As tabelas `planos_recorrentes` e `paciente_anexos`, a coluna `plano_recorrente_id` em `agendamentos`, o status `aguardando` e a coluna `retorno_dias` em `procedimentos` são aditivos em relação ao desenho original da Fase 0.
 
 ```sql
 CREATE TABLE usuarios (
@@ -156,7 +152,7 @@ CREATE TABLE profissionais (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     nome            TEXT    NOT NULL,
     especialidade   TEXT,
-    cor_hex         TEXT    NOT NULL DEFAULT '#3498db',
+    cor_hex         TEXT    NOT NULL DEFAULT '#2563eb',
     horario_inicio  TEXT    NOT NULL DEFAULT '08:00',
     horario_fim     TEXT    NOT NULL DEFAULT '18:00',
     dias_semana     TEXT    NOT NULL DEFAULT '1,2,3,4,5',  -- CSV: 0=dom..6=sab
@@ -170,6 +166,7 @@ CREATE TABLE procedimentos (
     duracao_minutos  INTEGER NOT NULL DEFAULT 30,
     cor_hex          TEXT    NOT NULL DEFAULT '#e74c3c',
     preco_base       REAL,
+    retorno_dias     INTEGER,                              -- Fase 4: dias até o retorno sugerido
     ativo            INTEGER NOT NULL DEFAULT 1
 );
 
@@ -185,6 +182,20 @@ CREATE TABLE pacientes (
     criado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Fase 4: plano de manutenção periódica do paciente (ex: aparelho ortodôntico mensal)
+CREATE TABLE planos_recorrentes (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id       INTEGER NOT NULL REFERENCES pacientes(id),
+    profissional_id   INTEGER NOT NULL REFERENCES profissionais(id),
+    procedimento_id   INTEGER NOT NULL REFERENCES procedimentos(id),
+    intervalo_dias    INTEGER NOT NULL,
+    proxima_data      TEXT    NOT NULL,                    -- 'YYYY-MM-DD'
+    horario_preferido TEXT,                                -- 'HH:MM'
+    observacoes       TEXT,
+    ativo             INTEGER NOT NULL DEFAULT 1,
+    criado_em         TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE agendamentos (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     profissional_id     INTEGER NOT NULL REFERENCES profissionais(id),
@@ -193,11 +204,12 @@ CREATE TABLE agendamentos (
     data_hora_inicio    TEXT    NOT NULL,  -- ISO 8601: 'YYYY-MM-DD HH:MM'
     data_hora_fim       TEXT    NOT NULL,
     status              TEXT    NOT NULL DEFAULT 'agendado'
-                        CHECK(status IN ('agendado','confirmado','em_atendimento',
+                        CHECK(status IN ('agendado','confirmado','aguardando','em_atendimento',
                                          'concluido','cancelado','falta')),
     observacoes         TEXT,
     origem              TEXT    NOT NULL DEFAULT 'interno'
                         CHECK(origem IN ('interno','autoagendamento')),
+    plano_recorrente_id INTEGER REFERENCES planos_recorrentes(id),  -- Fase 4
     criado_em           TEXT    NOT NULL DEFAULT (datetime('now')),
     atualizado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -210,6 +222,7 @@ CREATE TABLE lembretes_enviados (
     agendamento_id  INTEGER NOT NULL REFERENCES agendamentos(id),
     tipo            TEXT    NOT NULL CHECK(tipo IN ('whatsapp','email','sms')),
     antecedencia_h  INTEGER NOT NULL,  -- horas antes do agendamento
+    tentativas      INTEGER NOT NULL DEFAULT 0,
     enviado_em      TEXT,
     status          TEXT    NOT NULL DEFAULT 'pendente'
                     CHECK(status IN ('pendente','enviado','erro')),
@@ -222,6 +235,15 @@ CREATE TABLE config_lembretes (
     tipo            TEXT    NOT NULL CHECK(tipo IN ('whatsapp','email')),
     ativo           INTEGER NOT NULL DEFAULT 1
 );
+
+-- Fase 4: fotos e exames anexados à ficha do paciente
+CREATE TABLE paciente_anexos (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id     INTEGER NOT NULL REFERENCES pacientes(id),
+    nome_original   TEXT    NOT NULL,
+    caminho_arquivo TEXT    NOT NULL,
+    criado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
 ```
 
 ---
@@ -233,3 +255,18 @@ CREATE TABLE config_lembretes (
 3. **Cores no grid são responsabilidade do frontend:** o backend retorna `status`, `profissional.cor_hex`, `procedimento.cor_hex` e o JavaScript do FullCalendar decide a cor de exibição por regra de negócio visual.
 4. **Sem dependência circular:** blueprints Flask não importam nada de `/domain` diretamente — passam por use cases em `/application`.
 5. **Testes de domínio e aplicação sem banco:** a Squad Gamma deve conseguir rodar `pytest tests/domain/ tests/application/` sem nenhum arquivo `.db` presente.
+
+---
+
+## 6. Fase 4 — Evolução Pós-Lançamento (Dashboard e Recursos de Mercado)
+
+Após a entrega das Fases 0–3, o cliente pediu uma pesquisa de mercado sobre o **Clinicorp** (referência citada na seção 1) para trazer funcionalidades específicas ao produto, mantendo a filosofia "essencial, sem complexidade enterprise". Foram adicionados, sempre seguindo os mesmos princípios de Clean Architecture desta seção:
+
+- **Dashboard** (`/dashboard`) — nova home pós-login com indicadores do dia.
+- **Check-in de chegada** — novo status `aguardando`, reaproveitando o mecanismo genérico de troca de status (nenhuma rota nova).
+- **Retorno automático sugerido** — campo `retorno_dias` em `Procedimento` + use case `SugerirRetorno`.
+- **Anexos do paciente** — upload/download/exclusão de fotos e exames, isolado em `AnexoRepository`.
+- **Relatório de faltas/cancelamentos** — use case `RelatorioFaltas`, reaproveita `listar_por_periodo` já existente.
+- **Pacientes recorrentes** — planos de manutenção periódica (`PlanoRecorrente`) com painel de acompanhamento (`/recorrentes`) e avanço automático da próxima data ao concluir o agendamento vinculado. **Decisão de produto:** o sistema nunca cria agendamento sozinho a partir de um plano — apenas sinaliza; a recepção sempre confirma o horário manualmente (evita conflitos silenciosos e agendamentos-surpresa para o paciente).
+
+Detalhamento completo em `SPEC.md` (seção 6.1, FASE 4) e `PLAN.md` (SPRINT 7).
