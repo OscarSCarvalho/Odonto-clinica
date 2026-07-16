@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Acesso Negado{% endblock %}
+{% block content %}
+<div style="text-align:center; padding: 4rem 1rem;">
+  <h1 style="font-size:3rem; color:var(--danger);">403</h1>
+  <p style="font-size:1.1rem; margin:.5rem 0 1.5rem; color:var(--text-muted);">
+    Você não tem permissão para acessar esta página.
+  </p>
+  <a href="{{ url_for('agenda.index') }}" class="btn btn-ghost">← Voltar para a Agenda</a>
+</div>
+{% endblock %}

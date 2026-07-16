@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Procedimentos{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Procedimentos</h1>
+    <p class="page-subtitle">{{ procedimentos|length }} ativo(s)</p>
+  </div>
+  <a href="{{ url_for('procedimentos.novo') }}" class="btn btn-primary">+ Novo Procedimento</a>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Duração</th>
+          <th>Cor</th>
+          <th>Preço base</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in procedimentos %}
+        <tr>
+          <td><strong>{{ p.nome }}</strong></td>
+          <td>{{ p.duracao_minutos }} min</td>
+          <td>
+            <span class="color-dot" style="background:{{ p.cor_hex }}"></span>
+            {{ p.cor_hex }}
+          </td>
+          <td>{{ 'R$ %.2f'|format(p.preco_base) if p.preco_base else '—' }}</td>
+          <td>
+            <div class="btn-group">
+              <a href="{{ url_for('procedimentos.editar', id=p.id) }}" class="btn btn-ghost btn-sm">Editar</a>
+              <form method="POST" action="{{ url_for('procedimentos.desativar', id=p.id) }}"
+                    onsubmit="return confirm('Desativar {{ p.nome }}?')">
+                <button class="btn btn-danger btn-sm">Desativar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem">
+          Nenhum procedimento cadastrado.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

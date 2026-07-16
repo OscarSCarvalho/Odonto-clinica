@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Pacientes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">Pacientes</h1></div>
+  <a href="{{ url_for('pacientes.novo') }}" class="btn btn-primary">+ Novo Paciente</a>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <form method="GET" style="display:flex;gap:.75rem;align-items:flex-end">
+    <div class="form-group" style="margin:0;flex:1">
+      <label>Buscar por nome</label>
+      <input type="text" name="q" class="form-control" placeholder="Mínimo 3 caracteres…"
+             value="{{ termo }}" autofocus>
+    </div>
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    {% if termo %}<a href="{{ url_for('pacientes.index') }}" class="btn btn-ghost">Limpar</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>CPF</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in pacientes %}
+        <tr>
+          <td><strong>{{ p.nome }}</strong></td>
+          <td>{{ p.telefone or '—' }}</td>
+          <td>{{ p.email or '—' }}</td>
+          <td>{{ p.cpf or '—' }}</td>
+          <td>
+            <div class="btn-group">
+              <a href="{{ url_for('pacientes.editar', id=p.id) }}" class="btn btn-ghost btn-sm">Editar</a>
+              <form method="POST" action="{{ url_for('pacientes.desativar', id=p.id) }}"
+                    onsubmit="return confirm('Desativar {{ p.nome }}?')">
+                <button class="btn btn-danger btn-sm">Desativar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem">
+          {% if termo %}Nenhum paciente encontrado para "{{ termo }}".{% else %}Digite um nome para buscar.{% endif %}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'publico/base_publica.html' %}
+{% block title %}Agendamento Confirmado{% endblock %}
+
+{% block stepper %}{% endblock %}
+
+{% block content %}
+<div class="pub-card" style="text-align:center">
+  <!-- Ícone de sucesso -->
+  <div style="
+    width:64px;height:64px;border-radius:50%;
+    background:var(--success);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 1.25rem;font-size:1.75rem;color:#fff
+  ">✓</div>
+
+  <h2 style="font-size:1.2rem;margin-bottom:.35rem">Agendamento confirmado!</h2>
+  <p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1.5rem">
+    Você receberá um lembrete antes da consulta.
+  </p>
+
+  <!-- Resumo -->
+  <div class="resumo" style="text-align:left">
+    <div class="resumo-row">
+      <span>Profissional</span>
+      <span>{{ ag.profissional_nome if ag.profissional_nome is defined else '—' }}</span>
+    </div>
+    <div class="resumo-row">
+      <span>Procedimento</span>
+      <span>{{ ag.procedimento_nome if ag.procedimento_nome is defined else '—' }}</span>
+    </div>
+    <div class="resumo-row">
+      <span>Data</span>
+      <span>{{ dia_semana }}, {{ data_fmt }}</span>
+    </div>
+    <div class="resumo-row">
+      <span>Horário</span>
+      <span style="color:var(--accent);font-weight:700;font-size:1rem">{{ hora_fmt }}</span>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem">
+    {% if google_cal_url %}
+    <a href="{{ google_cal_url }}" target="_blank" rel="noopener" class="btn btn-ghost"
+       style="justify-content:center">
+      📅 Adicionar ao Google Agenda
+    </a>
+    {% endif %}
+    <a href="{{ url_for('publico.step1_profissional') }}" class="btn btn-ghost"
+       style="justify-content:center;font-size:.82rem">
+      Fazer outro agendamento
+    </a>
+  </div>
+
+  <p style="margin-top:1.5rem;font-size:.75rem;color:var(--text-muted)">
+    Protocolo #{{ ag.id }}
+  </p>
+</div>
+{% endblock %}

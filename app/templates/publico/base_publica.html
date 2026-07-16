@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Agendar Consulta{% endblock %} — OdontoClinica</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    body { background: var(--bg); }
+    .pub-header {
+      background: var(--primary);
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem 1rem 1.25rem;
+    }
+    .pub-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: .3px; }
+    .pub-header h1 span { color: var(--accent); }
+    .pub-header p { font-size: .82rem; opacity: .75; margin-top: .2rem; }
+    .pub-body { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .pub-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+    /* Stepper */
+    .stepper { display: flex; align-items: center; justify-content: center; gap: .35rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
+    .step-item { display: flex; align-items: center; gap: .35rem; }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700;
+      background: var(--border); color: var(--text-muted);
+    }
+    .step-num.done  { background: var(--success); color: #fff; }
+    .step-num.active{ background: var(--accent);  color: #fff; }
+    .step-label { font-size: .75rem; color: var(--text-muted); }
+    .step-label.active { color: var(--accent); font-weight: 600; }
+    .step-sep { color: var(--border); font-size: .8rem; }
+
+    /* Seleção de card */
+    .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .75rem; margin-top: 1rem; }
+    .pick-card {
+      border: 2px solid var(--border); border-radius: 10px; padding: .9rem 1rem;
+      cursor: pointer; text-decoration: none; color: var(--text);
+      display: flex; align-items: center; gap: .65rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .pick-card:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(52,152,219,.18); color: var(--text); }
+    .pick-card .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .pick-card .info strong { display: block; font-size: .9rem; }
+    .pick-card .info small { color: var(--text-muted); font-size: .78rem; }
+
+    /* Slots */
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: .5rem; margin-top: 1rem; }
+    .slot-link {
+      display: block; padding: .55rem; text-align: center;
+      border: 2px solid var(--border); border-radius: 8px;
+      font-size: .88rem; font-weight: 600; color: var(--primary);
+      text-decoration: none; background: #fff;
+      transition: border-color .15s, background .15s;
+    }
+    .slot-link:hover { border-color: var(--accent); background: #eaf4fb; color: var(--accent); }
+
+    /* Resumo */
+    .resumo { background: var(--bg); border-radius: 8px; padding: .85rem 1rem; margin-bottom: 1.25rem; }
+    .resumo-row { display: flex; justify-content: space-between; font-size: .85rem; padding: .2rem 0; }
+    .resumo-row span:first-child { color: var(--text-muted); }
+    .resumo-row span:last-child  { font-weight: 600; }
+
+    /* Alerta flash */
+    .pub-alert {
+      padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+      font-size: .875rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .pub-alert.aviso { background: #fef9e7; color: #d68910; border-left: 4px solid #f39c12; }
+    .pub-alert.erro  { background: #fdedec; color: #c0392b; border-left: 4px solid #e74c3c; }
+
+    @media (max-width: 480px) {
+      .pub-body { padding: 1rem .75rem 2rem; }
+      .pick-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header class="pub-header">
+  <h1>Odonto<span>Clinica</span></h1>
+  <p>Agendamento Online</p>
+</header>
+
+<div class="pub-body">
+  {% with msgs = get_flashed_messages(with_categories=True) %}
+    {% for cat, msg in msgs %}
+      <div class="pub-alert {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block stepper %}{% endblock %}
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>

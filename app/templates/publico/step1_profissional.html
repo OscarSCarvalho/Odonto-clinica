@@ -1,0 +1,47 @@
+{% extends 'publico/base_publica.html' %}
+{% block title %}Escolha o Profissional{% endblock %}
+
+{% block stepper %}
+<div class="stepper">
+  <div class="step-item">
+    <div class="step-num active">1</div>
+    <span class="step-label active">Profissional</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <span class="step-label">Procedimento</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <span class="step-label">Data &amp; Horário</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <span class="step-label">Confirmação</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="pub-card">
+  <h2 style="font-size:1.05rem;margin-bottom:.25rem">Com quem deseja ser atendido?</h2>
+  <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem">Selecione um profissional para continuar.</p>
+
+  <div class="pick-grid">
+    {% for p in profissionais %}
+    <a class="pick-card" href="{{ url_for('publico.step2_procedimento', profissional_id=p.id) }}">
+      <div class="dot" style="background:{{ p.cor_hex }}"></div>
+      <div class="info">
+        <strong>{{ p.nome }}</strong>
+        <small>{{ p.especialidade or 'Clínico Geral' }}</small>
+      </div>
+    </a>
+    {% else %}
+    <p style="color:var(--text-muted);font-size:.9rem">Nenhum profissional disponível no momento.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

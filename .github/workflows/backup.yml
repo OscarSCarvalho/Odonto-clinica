@@ -1,0 +1,28 @@
+name: Backup do Banco de Dados
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download banco via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: ${{ secrets.DEPLOY_DB_PATH }}
+          target: ./backup/
+
+      - name: Upload artefato de backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: odonto-db-backup-${{ github.run_number }}
+          path: ./backup/
+          retention-days: 30

@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if ag else 'Novo' }} Agendamento{% endblock %}
+
+{% block content %}
+{% set fd = form_data or {} %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'Editar Agendamento' if ag else 'Novo Agendamento' }}</h1>
+    {% if ag %}
+    <p class="page-subtitle">
+      <span class="badge badge-{{ ag.status }}">{{ status_label[ag.status] }}</span>
+    </p>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('agenda.index') }}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:start">
+
+  <!-- Formulário principal -->
+  <div class="card">
+    <form method="POST" id="form-agendamento">
+
+      <div class="form-row">
+        <!-- Profissional -->
+        <div class="form-group">
+          <label>Profissional *</label>
+          <select name="profissional_id" id="sel-profissional" class="form-control" required>
+            <option value="">Selecione…</option>
+            {% for p in profissionais %}
+            <option value="{{ p.id }}"
+              data-inicio="{{ p.horario_inicio }}"
+              data-fim="{{ p.horario_fim }}"
+              {{ 'selected' if (fd.profissional_id|string == p.id|string)
+                               or (ag and ag.profissional_id == p.id)
+                               or (pre.profissional_id == p.id|string) }}>
+              {{ p.nome }}{% if p.especialidade %} — {{ p.especialidade }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Procedimento -->
+        <div class="form-group">
+          <label>Procedimento *</label>
+          <select name="procedimento_id" id="sel-procedimento" class="form-control" required>
+            <option value="">Selecione…</option>
+            {% for p in procedimentos %}
+            <option value="{{ p.id }}" data-duracao="{{ p.duracao_minutos }}"
+              {{ 'selected' if (fd.procedimento_id|string == p.id|string)
+                               or (ag and ag.procedimento_id == p.id) }}>
+              {{ p.nome }} ({{ p.duracao_minutos }} min)
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Data/hora + preview de duração -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data e hora de início *</label>
+          {% set dt_val = fd.data_hora_inicio
+                          or (ag.data_hora_inicio.replace(' ','T') if ag else
+                              (pre.data ~ 'T' ~ pre.hora if pre.data and pre.hora else '')) %}
+          <input type="datetime-local" name="data_hora_inicio" id="inp-inicio"
+                 class="form-control" required value="{{ dt_val }}">
+        </div>
+        <div class="form-group">
+          <label>Término estimado</label>
+          <input type="text" id="inp-fim-preview" class="form-control"
+                 readonly placeholder="—" style="background:var(--bg);color:var(--text-muted)">
+        </div>
+      </div>
+
+      <!-- Paciente com autocomplete -->
+      <div class="form-group" style="position:relative">
+        <label>Paciente *</label>
+        <input type="hidden" name="paciente_id" id="inp-paciente-id"
+               value="{{ fd.paciente_id or (ag.paciente_id if ag else '') }}" required>
+        <input type="text" id="inp-paciente-texto" class="form-control"
+               placeholder="Digite o nome (mín. 3 caracteres)…" autocomplete="off"
+               value="{{ ag.paciente_nome if ag else '' }}">
+        <div id="autocomplete-lista" style="
+          display:none;position:absolute;z-index:200;background:#fff;
+          border:1px solid var(--border);border-radius:6px;
+          box-shadow:0 4px 16px rgba(0,0,0,.12);width:100%;max-height:220px;overflow-y:auto
+        "></div>
+        <p id="paciente-erro" style="display:none;color:var(--danger);font-size:.8rem;margin-top:.3rem">
+          Selecione um paciente da lista de sugestões ou cadastre um novo abaixo.
+        </p>
+        <div style="margin-top:.35rem;display:flex;gap:.5rem">
+          <a href="{{ url_for('pacientes.novo') }}" target="_blank"
+             class="btn btn-ghost btn-sm" style="font-size:.75rem">+ Cadastrar novo paciente</a>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="form-group">
+        <label>Observações</label>
+        <textarea name="observacoes" class="form-control" rows="2"
+                  placeholder="Informações adicionais…">{{ fd.observacoes or (ag.observacoes or '' if ag else '') }}</textarea>
+      </div>
+
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem">
+        <button type="submit" class="btn btn-primary">
+          {{ 'Salvar alterações' if ag else 'Criar agendamento' }}
+        </button>
+        <a href="{{ url_for('agenda.index') }}" class="btn btn-ghost">Cancelar</a>
+        {% if ag and ag.pode_cancelar() %}
+        <form method="POST" action="{{ url_for('agenda.cancelar', id=ag.id) }}"
+              style="margin-left:auto"
+              onsubmit="return confirm('Cancelar este agendamento?')">
+          <button class="btn btn-danger">Cancelar agendamento</button>
+        </form>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Painel lateral: mudança de status (só na edição) -->
+  {% if ag and proximos_status %}
+  <div class="card" style="min-width:200px">
+    <div class="card-header">
+      <span class="card-title" style="font-size:.85rem">Alterar status</span>
+    </div>
+    {% for s in proximos_status %}
+    <form method="POST" action="{{ url_for('agenda.mudar_status', id=ag.id) }}"
+          style="margin-bottom:.5rem">
+      <input type="hidden" name="status" value="{{ s }}">
+      <button class="btn btn-ghost" style="width:100%;justify-content:center">
+        → {{ status_label[s] }}
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const selProc   = document.getElementById('sel-procedimento');
+  const inpInicio = document.getElementById('inp-inicio');
+  const inpFim    = document.getElementById('inp-fim-preview');
+  const inpId     = document.getElementById('inp-paciente-id');
+  const inpTexto  = document.getElementById('inp-paciente-texto');
+  const lista     = document.getElementById('autocomplete-lista');
+
+  function atualizarFim() {
+    const opt = selProc.options[selProc.selectedIndex];
+    const dur = opt ? parseInt(opt.dataset.duracao || 0) : 0;
+    const val = inpInicio.value;
+    if (!dur || !val) { inpFim.value = ''; return; }
+    const dt = new Date(val);
+    dt.setMinutes(dt.getMinutes() + dur);
+    inpFim.value = dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+                 + ' (' + dur + ' min)';
+  }
+
+  selProc.addEventListener('change', atualizarFim);
+  inpInicio.addEventListener('change', atualizarFim);
+  atualizarFim();
+
+  // ── Autocomplete de paciente ──
+  let debounce;
+  inpTexto.addEventListener('input', function () {
+    clearTimeout(debounce);
+    const q = this.value.trim();
+    inpId.value = '';
+    if (q.length < 3) { lista.style.display = 'none'; return; }
+    debounce = setTimeout(() => {
+      fetch(`/pacientes/api/buscar?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+          lista.innerHTML = '';
+          if (!data.length) {
+            lista.innerHTML = '<div style="padding:.6rem 1rem;color:var(--text-muted);font-size:.85rem">Nenhum resultado</div>';
+          } else {
+            data.forEach(p => {
+              const div = document.createElement('div');
+              div.style.cssText = 'padding:.55rem 1rem;cursor:pointer;font-size:.875rem;border-bottom:1px solid var(--border)';
+              div.innerHTML = `<strong>${p.nome}</strong>${p.telefone ? ' <span style="color:var(--text-muted);font-size:.8rem">— '+p.telefone+'</span>' : ''}`;
+              div.addEventListener('mousedown', () => {
+                inpId.value    = p.id;
+                inpTexto.value = p.nome;
+                lista.style.display = 'none';
+              });
+              div.addEventListener('mouseover', () => div.style.background = 'var(--bg)');
+              div.addEventListener('mouseout',  () => div.style.background = '');
+              lista.appendChild(div);
+            });
+          }
+          lista.style.display = 'block';
+        });
+    }, 280);
+  });
+
+  inpTexto.addEventListener('blur', () => setTimeout(() => lista.style.display = 'none', 150));
+  inpTexto.addEventListener('focus', () => { if (lista.children.length) lista.style.display = 'block'; });
+
+  const pacienteErro = document.getElementById('paciente-erro');
+  const formAg = document.getElementById('form-agendamento');
+
+  // Valida que paciente foi selecionado no autocomplete
+  formAg.addEventListener('submit', function (e) {
+    if (!inpId.value) {
+      e.preventDefault();
+      inpTexto.style.borderColor = 'var(--danger)';
+      pacienteErro.style.display = 'block';
+      inpTexto.focus();
+      return;
+    }
+    // Protege contra duplo submit por cliques rápidos
+    const btn = formAg.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+    }
+  });
+
+  inpTexto.addEventListener('input', function () {
+    pacienteErro.style.display = 'none';
+    inpTexto.style.borderColor = '';
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Profissionais{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Profissionais</h1>
+    <p class="page-subtitle">{{ profissionais|length }} ativo(s)</p>
+  </div>
+  <a href="{{ url_for('profissionais.novo') }}" class="btn btn-primary">+ Novo Profissional</a>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Especialidade</th>
+          <th>Cor</th>
+          <th>Expediente</th>
+          <th>Dias</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in profissionais %}
+        <tr>
+          <td><strong>{{ p.nome }}</strong></td>
+          <td>{{ p.especialidade or '—' }}</td>
+          <td>
+            <span class="color-dot" style="background:{{ p.cor_hex }}"></span>
+            {{ p.cor_hex }}
+          </td>
+          <td>{{ p.horario_inicio }} – {{ p.horario_fim }}</td>
+          <td style="font-size:.75rem; color:var(--text-muted)">
+            {% set map = {'0':'Dom','1':'Seg','2':'Ter','3':'Qua','4':'Qui','5':'Sex','6':'Sáb'} %}
+            {% for d in p.dias_semana.split(',') %}{{ map.get(d,d) }}{% if not loop.last %}, {% endif %}{% endfor %}
+          </td>
+          <td>
+            <div class="btn-group">
+              <a href="{{ url_for('profissionais.editar', id=p.id) }}" class="btn btn-ghost btn-sm">Editar</a>
+              <form method="POST" action="{{ url_for('profissionais.desativar', id=p.id) }}"
+                    onsubmit="return confirm('Desativar {{ p.nome }}?')">
+                <button class="btn btn-danger btn-sm">Desativar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem">
+          Nenhum profissional cadastrado.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

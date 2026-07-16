@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Lembretes Automáticos{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Lembretes Automáticos</h1>
+    <p class="page-subtitle">Disparados a cada 15 min para agendamentos futuros</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-body" style="padding:1.25rem">
+    <h2 style="font-size:1rem;font-weight:600;margin-bottom:1rem">Nova Regra de Lembrete</h2>
+    <form method="POST" action="{{ url_for('configuracoes.lembretes_novo') }}" class="form-inline">
+      <div style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group">
+          <label class="form-label">Antecedência (horas)</label>
+          <input type="number" name="antecedencia_h" class="form-control"
+                 min="1" max="168" placeholder="ex: 24" required style="width:140px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Canal</label>
+          <select name="tipo" class="form-control" style="width:160px">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="email">E-mail</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Adicionar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Antecedência</th>
+          <th>Canal</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in configs %}
+        <tr style="{{ 'opacity:.5' if not c.ativo else '' }}">
+          <td><strong>{{ c.antecedencia_h }}h antes</strong></td>
+          <td>
+            {% if c.tipo == 'whatsapp' %}
+              <span style="color:#25d366;font-weight:600">WhatsApp</span>
+            {% else %}
+              <span style="color:#3498db;font-weight:600">E-mail</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.ativo %}
+              <span class="badge badge-ativo">Ativo</span>
+            {% else %}
+              <span class="badge badge-inativo">Inativo</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="btn-group">
+              <form method="POST" action="{{ url_for('configuracoes.lembretes_toggle', id=c.id) }}">
+                <button class="btn btn-ghost btn-sm">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
+              </form>
+              <form method="POST" action="{{ url_for('configuracoes.lembretes_remover', id=c.id) }}"
+                    onsubmit="return confirm('Remover esta regra?')">
+                <button class="btn btn-danger btn-sm">Remover</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem">
+            Nenhuma regra configurada. Adicione uma acima.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

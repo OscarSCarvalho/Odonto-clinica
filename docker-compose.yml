@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - odonto_data:/app/data
+      - odonto_log:/app/log
+    restart: unless-stopped
+
+volumes:
+  odonto_data:
+  odonto_log:

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if proc else 'Novo' }} Procedimento{% endblock %}
+{% block content %}
+{% set fd = form_data or {} %}
+
+<div class="page-header">
+  <div><h1 class="page-title">{{ 'Editar' if proc else 'Novo' }} Procedimento</h1></div>
+  <a href="{{ url_for('procedimentos.index') }}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<div class="card" style="max-width:560px">
+  <form method="POST" novalidate>
+    <div class="form-group">
+      <label>Nome *</label>
+      <input type="text" name="nome" class="form-control" required
+             value="{{ fd.nome or (proc.nome if proc else '') }}">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Duração (minutos) *</label>
+        <input type="number" name="duracao_minutos" class="form-control"
+               min="5" step="5" required
+               value="{{ fd.duracao_minutos or (proc.duracao_minutos if proc else 30) }}">
+      </div>
+      <div class="form-group">
+        <label>Preço base (R$)</label>
+        <input type="number" name="preco_base" class="form-control"
+               min="0" step="0.01" placeholder="Opcional"
+               value="{{ fd.preco_base or (proc.preco_base if proc else '') }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Cor *</label>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <input type="color" name="cor_hex" id="cor_hex"
+               value="{{ fd.cor_hex or (proc.cor_hex if proc else '#e74c3c') }}"
+               style="width:48px;height:38px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">
+        <input type="text" id="cor_hex_text" class="form-control"
+               value="{{ fd.cor_hex or (proc.cor_hex if proc else '#e74c3c') }}"
+               style="width:110px" placeholder="#000000" maxlength="7">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+      <button type="submit" class="btn btn-primary">
+        {{ 'Salvar alterações' if proc else 'Cadastrar procedimento' }}
+      </button>
+      <a href="{{ url_for('procedimentos.index') }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const picker = document.getElementById('cor_hex');
+  const text   = document.getElementById('cor_hex_text');
+  picker.addEventListener('input', () => text.value = picker.value);
+  text.addEventListener('input', () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(text.value)) picker.value = text.value;
+  });
+</script>
+{% endblock %}

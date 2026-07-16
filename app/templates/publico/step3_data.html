@@ -1,0 +1,102 @@
+{% extends 'publico/base_publica.html' %}
+{% block title %}Escolha a Data e Horário{% endblock %}
+
+{% block stepper %}
+<div class="stepper">
+  <div class="step-item">
+    <div class="step-num done">✓</div><span class="step-label">Profissional</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num done">✓</div><span class="step-label">Procedimento</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num active">3</div>
+    <span class="step-label active">Data &amp; Horário</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num">4</div><span class="step-label">Confirmação</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="pub-card">
+  <!-- Resumo da seleção -->
+  <div class="resumo">
+    <div class="resumo-row">
+      <span>Profissional</span>
+      <span>{{ profissional.nome }}</span>
+    </div>
+    <div class="resumo-row">
+      <span>Procedimento</span>
+      <span>{{ procedimento.nome }} ({{ procedimento.duracao_minutos }} min)</span>
+    </div>
+  </div>
+
+  <!-- Seletor de data -->
+  <form method="GET" action="{{ url_for('publico.step3_data') }}" id="form-data">
+    <input type="hidden" name="profissional_id" value="{{ profissional.id }}">
+    <input type="hidden" name="procedimento_id" value="{{ procedimento.id }}">
+    <div class="form-group">
+      <label style="font-size:.85rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">
+        Escolha uma data
+      </label>
+      <div style="display:flex;gap:.65rem;align-items:center;margin-top:.3rem">
+        <input type="date" name="data" id="inp-data" class="form-control"
+               style="max-width:200px"
+               min="{{ data_min }}" max="{{ data_max }}"
+               value="{{ data_str }}" required>
+        <button type="submit" class="btn btn-primary btn-sm">Ver horários</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Slots disponíveis -->
+  {% if data_str %}
+    {% if erro_dia %}
+      <div class="pub-alert aviso" style="margin-top:1rem">
+        Sem horários disponíveis para esta data. Tente outro dia.
+      </div>
+    {% elif slots %}
+      <div style="margin-top:1.25rem">
+        <p style="font-size:.85rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.1rem">
+          Horários disponíveis
+        </p>
+        <div class="slots-grid">
+          {% for slot in slots %}
+          <a class="slot-link"
+             href="{{ url_for('publico.step4_confirmar',
+                              profissional_id=profissional.id,
+                              procedimento_id=procedimento.id,
+                              data=data_str,
+                              slot=slot) }}">
+            {{ slot }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <p style="margin-top:1rem;font-size:.85rem;color:var(--text-muted)">
+      Selecione uma data para ver os horários disponíveis.
+    </p>
+  {% endif %}
+
+  <div style="margin-top:1.5rem">
+    <a href="{{ url_for('publico.step2_procedimento', profissional_id=profissional.id) }}"
+       style="font-size:.82rem;color:var(--text-muted)">← Voltar</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* Submete o form automaticamente ao mudar a data (progressive enhancement) */
+  document.getElementById('inp-data').addEventListener('change', function () {
+    document.getElementById('form-data').submit();
+  });
+</script>
+{% endblock %}

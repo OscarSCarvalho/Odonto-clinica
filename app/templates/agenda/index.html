@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Agenda{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Agenda</h1>
+  </div>
+  <a href="{{ url_for('agenda.novo') }}" class="btn btn-primary">+ Novo Agendamento</a>
+</div>
+
+<!-- Legenda de status -->
+<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center">
+  <span style="font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase">Status:</span>
+  <span class="badge badge-agendado">Agendado</span>
+  <span class="badge badge-confirmado">Confirmado</span>
+  <span class="badge badge-em_atendimento">Em atendimento</span>
+  <span class="badge badge-concluido">Concluído</span>
+  <span class="badge badge-cancelado">Cancelado</span>
+  <span class="badge badge-falta">Falta</span>
+  <span style="margin-left:.5rem;font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cor:</span>
+  <span style="font-size:.75rem;color:var(--text-muted)">por procedimento</span>
+</div>
+
+<div class="card">
+  <div class="agenda-filters">
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);white-space:nowrap">Profissional</label>
+      <select id="filtro-profissional" class="form-control" style="min-width:200px">
+        <option value="">Todos</option>
+        {% for p in profissionais %}
+        <option value="{{ p.id }}" data-cor="{{ p.cor_hex }}">{{ p.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="expediente-info" style="font-size:.78rem;color:var(--text-muted)"></div>
+  </div>
+
+  <div id="calendar"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.AGENDA_CONFIG = {
+    novUrl: "{{ url_for('agenda.novo') }}",
+    editUrl: "{{ url_for('agenda.index') }}".replace('/agenda/', '/agenda/editar/'),
+    eventosUrl: "{{ url_for('agenda.api_eventos') }}",
+    expedientesUrl: "{{ url_for('agenda.api_expedientes') }}",
+  };
+</script>
+<script src="{{ url_for('static', filename='js/agenda.js') }}"></script>
+{% endblock %}

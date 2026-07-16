@@ -1,0 +1,29 @@
+# Ambiente
+.env
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.flake8
+
+# Banco de dados
+data/
+*.db
+*.sqlite3
+
+# Virtualenv
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+log/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

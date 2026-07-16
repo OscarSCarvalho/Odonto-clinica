@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if prof else 'Novo' }} Profissional{% endblock %}
+{% block content %}
+{% set fd = form_data or {} %}
+{% set v = prof or {} %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'Editar' if prof else 'Novo' }} Profissional</h1>
+  </div>
+  <a href="{{ url_for('profissionais.index') }}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<div class="card" style="max-width:640px">
+  <form method="POST">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" name="nome" class="form-control" required
+               value="{{ fd.nome or (prof.nome if prof else '') }}">
+      </div>
+      <div class="form-group">
+        <label>Especialidade</label>
+        <input type="text" name="especialidade" class="form-control"
+               value="{{ fd.especialidade or (prof.especialidade if prof else '') }}">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cor *</label>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input type="color" name="cor_hex" id="cor_hex"
+                 value="{{ fd.cor_hex or (prof.cor_hex if prof else '#3498db') }}"
+                 style="width:48px;height:38px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">
+          <input type="text" id="cor_hex_text" class="form-control"
+                 value="{{ fd.cor_hex or (prof.cor_hex if prof else '#3498db') }}"
+                 style="width:110px" placeholder="#000000" maxlength="7">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Horário de início *</label>
+        <input type="time" name="horario_inicio" class="form-control"
+               value="{{ fd.horario_inicio or (prof.horario_inicio if prof else '08:00') }}">
+      </div>
+      <div class="form-group">
+        <label>Horário de fim *</label>
+        <input type="time" name="horario_fim" class="form-control"
+               value="{{ fd.horario_fim or (prof.horario_fim if prof else '18:00') }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Dias de trabalho *</label>
+      {% set dias_atuais = (fd.dias_semana if fd.dias_semana else
+                            (prof.dias_semana.split(',') if prof else ['1','2','3','4','5'])) %}
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.25rem">
+        {% for val, label in dias %}
+        <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-weight:normal;text-transform:none;letter-spacing:0">
+          <input type="checkbox" name="dias_semana" value="{{ val }}"
+                 {{ 'checked' if val|string in dias_atuais else '' }}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+      <button type="submit" class="btn btn-primary">
+        {{ 'Salvar alterações' if prof else 'Cadastrar profissional' }}
+      </button>
+      <a href="{{ url_for('profissionais.index') }}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const picker = document.getElementById('cor_hex');
+  const text   = document.getElementById('cor_hex_text');
+  picker.addEventListener('input', () => text.value = picker.value);
+  text.addEventListener('input', () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(text.value)) picker.value = text.value;
+  });
+</script>
+{% endblock %}

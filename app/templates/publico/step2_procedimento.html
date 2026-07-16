@@ -1,0 +1,64 @@
+{% extends 'publico/base_publica.html' %}
+{% block title %}Escolha o Procedimento{% endblock %}
+
+{% block stepper %}
+<div class="stepper">
+  <div class="step-item">
+    <div class="step-num done">✓</div>
+    <span class="step-label">Profissional</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num active">2</div>
+    <span class="step-label active">Procedimento</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <span class="step-label">Data &amp; Horário</span>
+  </div>
+  <span class="step-sep">›</span>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <span class="step-label">Confirmação</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="pub-card">
+  <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.15rem">Profissional selecionado</p>
+  <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem">
+    <div class="dot" style="background:{{ profissional.cor_hex }};width:12px;height:12px;border-radius:50%"></div>
+    <strong>{{ profissional.nome }}</strong>
+    {% if profissional.especialidade %}
+    <span style="color:var(--text-muted);font-size:.82rem">— {{ profissional.especialidade }}</span>
+    {% endif %}
+  </div>
+
+  <h2 style="font-size:1.05rem;margin-bottom:.25rem">Qual procedimento você precisa?</h2>
+  <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem">Selecione o tipo de atendimento.</p>
+
+  <div class="pick-grid">
+    {% for p in procedimentos %}
+    <a class="pick-card"
+       href="{{ url_for('publico.step3_data', profissional_id=profissional.id, procedimento_id=p.id) }}">
+      <div class="dot" style="background:{{ p.cor_hex }}"></div>
+      <div class="info">
+        <strong>{{ p.nome }}</strong>
+        <small>{{ p.duracao_minutos }} min
+          {% if p.preco_base %} · R$ {{ '%.2f'|format(p.preco_base) }}{% endif %}
+        </small>
+      </div>
+    </a>
+    {% else %}
+    <p style="color:var(--text-muted)">Nenhum procedimento disponível.</p>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top:1.25rem">
+    <a href="{{ url_for('publico.step1_profissional') }}"
+       style="font-size:.82rem;color:var(--text-muted)">← Voltar</a>
+  </div>
+</div>
+{% endblock %}

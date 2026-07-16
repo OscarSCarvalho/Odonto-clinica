@@ -1,0 +1,89 @@
+from flask import current_app
+from app.infrastructure.db.connection import get_db
+from app.infrastructure.db.repositories.sqlite_profissional_repo import SqliteProfissionalRepository
+from app.infrastructure.db.repositories.sqlite_procedimento_repo import SqliteProcedimentoRepository
+from app.infrastructure.db.repositories.sqlite_paciente_repo import SqlitePacienteRepository
+from app.infrastructure.db.repositories.sqlite_agendamento_repo import SqliteAgendamentoRepository
+from app.infrastructure.db.repositories.sqlite_lembrete_repo import SqliteLembreteRepository
+from app.infrastructure.notifications.whatsapp_adapter import WhatsAppAdapter
+from app.infrastructure.notifications.email_adapter import EmailAdapter
+from app.application.verificar_conflito import VerificarConflito
+from app.application.criar_agendamento import CriarAgendamento
+from app.application.editar_agendamento import EditarAgendamento
+from app.application.cancelar_agendamento import CancelarAgendamento
+from app.application.listar_agenda import ListarAgenda
+from app.application.listar_slots_disponiveis import ListarSlotsDisponiveis
+from app.application.autoagendar_paciente import AutoagendarPaciente
+from app.application.enviar_lembretes import EnviarLembretes
+
+
+def profissional_repo():
+    return SqliteProfissionalRepository(get_db())
+
+
+def procedimento_repo():
+    return SqliteProcedimentoRepository(get_db())
+
+
+def paciente_repo():
+    return SqlitePacienteRepository(get_db())
+
+
+def agendamento_repo():
+    return SqliteAgendamentoRepository(get_db())
+
+
+def _verificar_conflito():
+    return VerificarConflito(agendamento_repo(), profissional_repo())
+
+
+def criar_agendamento_uc():
+    return CriarAgendamento(agendamento_repo(), procedimento_repo(), _verificar_conflito())
+
+
+def editar_agendamento_uc():
+    return EditarAgendamento(agendamento_repo(), procedimento_repo(), _verificar_conflito())
+
+
+def cancelar_agendamento_uc():
+    return CancelarAgendamento(agendamento_repo())
+
+
+def listar_agenda_uc():
+    return ListarAgenda(agendamento_repo())
+
+
+def listar_slots_uc():
+    return ListarSlotsDisponiveis(agendamento_repo(), profissional_repo(), procedimento_repo())
+
+
+def autoagendar_paciente_uc():
+    return AutoagendarPaciente(paciente_repo(), criar_agendamento_uc())
+
+
+def lembrete_repo():
+    return SqliteLembreteRepository(get_db())
+
+
+def _whatsapp_adapter():
+    cfg = current_app.config
+    return WhatsAppAdapter(
+        api_url=cfg.get('WHATSAPP_API_URL', ''),
+        api_key=cfg.get('WHATSAPP_API_KEY', ''),
+        instance=cfg.get('WHATSAPP_INSTANCE', ''),
+    )
+
+
+def _email_adapter():
+    cfg = current_app.config
+    return EmailAdapter(
+        host=cfg.get('SMTP_HOST', ''),
+        port=cfg.get('SMTP_PORT', 587),
+        user=cfg.get('SMTP_USER', ''),
+        password=cfg.get('SMTP_PASS', ''),
+        from_addr=cfg.get('EMAIL_FROM', ''),
+    )
+
+
+def enviar_lembretes_uc():
+    return EnviarLembretes(agendamento_repo(), lembrete_repo(), _whatsapp_adapter(), _email_adapter())
