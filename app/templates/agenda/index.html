@@ -24,14 +24,15 @@
 
 <div class="card">
   <div class="agenda-filters">
-    <div style="display:flex;align-items:center;gap:.5rem">
-      <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);white-space:nowrap">Profissional</label>
-      <select id="filtro-profissional" class="form-control" style="min-width:200px">
-        <option value="">Todos</option>
-        {% for p in profissionais %}
-        <option value="{{ p.id }}" data-cor="{{ p.cor_hex }}">{{ p.nome }}</option>
-        {% endfor %}
-      </select>
+    <div class="prof-filter" id="filtro-profissional">
+      <button type="button" class="prof-chip active" data-id="">
+        <span class="chip-dot" style="background:var(--text-muted)"></span>Todos
+      </button>
+      {% for p in profissionais %}
+      <button type="button" class="prof-chip" data-id="{{ p.id }}">
+        <span class="chip-dot" style="background:{{ p.cor_hex }}"></span>{{ p.nome }}
+      </button>
+      {% endfor %}
     </div>
     <div id="expediente-info" style="font-size:.78rem;color:var(--text-muted)"></div>
   </div>

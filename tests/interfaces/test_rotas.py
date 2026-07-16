@@ -1,5 +1,37 @@
+import io
 import json
 import pytest
+
+
+def _criar_agendamento(app, status='agendado', retorno_dias=None):
+    """Insere paciente/profissional/procedimento/agendamento de teste e retorna os IDs."""
+    with app.app_context():
+        from app.infrastructure.db.connection import get_db
+        db = get_db()
+        db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Teste')")
+        pac_id = db.execute("SELECT id FROM pacientes WHERE nome='Paciente Teste'").fetchone()['id']
+        prof_id = db.execute("SELECT id FROM profissionais LIMIT 1").fetchone()['id']
+        if retorno_dias is not None:
+            db.execute(
+                "INSERT INTO procedimentos (nome, duracao_minutos, cor_hex, retorno_dias) "
+                "VALUES ('Limpeza c/ retorno', 30, '#10b981', ?)", (retorno_dias,)
+            )
+            proc_id = db.execute(
+                "SELECT id FROM procedimentos WHERE nome='Limpeza c/ retorno'"
+            ).fetchone()['id']
+        else:
+            proc_id = db.execute("SELECT id FROM procedimentos LIMIT 1").fetchone()['id']
+        db.execute(
+            "INSERT INTO agendamentos (profissional_id, paciente_id, procedimento_id, "
+            "data_hora_inicio, data_hora_fim, status) VALUES (?,?,?,?,?,?)",
+            (prof_id, pac_id, proc_id, '2026-07-21 09:00', '2026-07-21 09:30', status)
+        )
+        db.commit()
+        ag_id = db.execute(
+            "SELECT id FROM agendamentos WHERE paciente_id=?", (pac_id,)
+        ).fetchone()['id']
+    return {'agendamento_id': ag_id, 'paciente_id': pac_id,
+            'profissional_id': prof_id, 'procedimento_id': proc_id}
 
 
 class TestAuth:
@@ -15,7 +47,7 @@ class TestAuth:
         r = client.post('/login', data={'email': 'admin@clinica.com', 'senha': 'admin123'},
                         follow_redirects=False)
         assert r.status_code == 302
-        assert '/agenda' in r.headers['Location']
+        assert '/dashboard' in r.headers['Location']
 
     def test_sem_login_redireciona(self, client):
         r = client.get('/agenda/', follow_redirects=False)
@@ -25,6 +57,16 @@ class TestAuth:
     def test_logout(self, admin_client):
         r = admin_client.get('/logout', follow_redirects=False)
         assert r.status_code == 302
+
+
+class TestDashboardView:
+    def test_index_200(self, admin_client):
+        assert admin_client.get('/dashboard/').status_code == 200
+
+    def test_sem_login_redireciona(self, client):
+        r = client.get('/dashboard/', follow_redirects=False)
+        assert r.status_code == 302
+        assert '/login' in r.headers['Location']
 
 
 class TestAgendaView:
@@ -85,6 +127,33 @@ class TestAgendaView:
         })
         assert r.status_code == 422
         assert 'Conflito' in r.data.decode()
+
+    def test_checkin_muda_status_para_aguardando(self, admin_client, app):
+        ids = _criar_agendamento(app, status='confirmado')
+        r = admin_client.post(f"/agenda/status/{ids['agendamento_id']}",
+                              data={'status': 'aguardando'}, follow_redirects=False)
+        assert r.status_code == 302
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            row = get_db().execute(
+                "SELECT status FROM agendamentos WHERE id=?", (ids['agendamento_id'],)
+            ).fetchone()
+        assert row['status'] == 'aguardando'
+
+    def test_editar_exibe_sugestao_de_retorno_apos_concluido(self, admin_client, app):
+        ids = _criar_agendamento(app, status='em_atendimento', retorno_dias=180)
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+        r = admin_client.get(f"/agenda/editar/{ids['agendamento_id']}")
+        assert r.status_code == 200
+        assert 'Retorno sugerido' in r.data.decode()
+        assert 'Agendar retorno' in r.data.decode()
+
+    def test_editar_sem_retorno_configurado_nao_exibe_sugestao(self, admin_client, app):
+        ids = _criar_agendamento(app, status='em_atendimento')
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+        r = admin_client.get(f"/agenda/editar/{ids['agendamento_id']}")
+        assert r.status_code == 200
+        assert 'Retorno sugerido' not in r.data.decode()
 
 
 class TestProfissionais:
@@ -150,3 +219,176 @@ class TestPacientes:
             'telefone': '11988880000',
         }, follow_redirects=False)
         assert r.status_code == 302
+
+    def test_upload_download_e_exclusao_de_anexo(self, admin_client, app):
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Anexo')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Anexo'"
+            ).fetchone()['id']
+
+        upload = admin_client.post(
+            f'/pacientes/{pac_id}/anexos',
+            data={'arquivo': (io.BytesIO(b'conteudo-fake'), 'exame.pdf')},
+            content_type='multipart/form-data',
+            follow_redirects=False,
+        )
+        assert upload.status_code == 302
+
+        editar = admin_client.get(f'/pacientes/editar/{pac_id}')
+        assert 'exame.pdf' in editar.data.decode()
+
+        with app.app_context():
+            from app.infrastructure.container import anexo_repo
+            anexo_id = anexo_repo().listar_por_paciente(pac_id)[0].id
+
+        download = admin_client.get(f'/pacientes/{pac_id}/anexos/{anexo_id}/download')
+        assert download.status_code == 200
+        assert download.data == b'conteudo-fake'
+
+        excluir = admin_client.post(
+            f'/pacientes/{pac_id}/anexos/{anexo_id}/excluir', follow_redirects=False
+        )
+        assert excluir.status_code == 302
+        editar_apos = admin_client.get(f'/pacientes/editar/{pac_id}')
+        assert 'exame.pdf' not in editar_apos.data.decode()
+
+    def test_upload_rejeita_extensao_nao_permitida(self, admin_client, app):
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Ext')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Ext'"
+            ).fetchone()['id']
+
+        r = admin_client.post(
+            f'/pacientes/{pac_id}/anexos',
+            data={'arquivo': (io.BytesIO(b'x'), 'virus.exe')},
+            content_type='multipart/form-data',
+            follow_redirects=True,
+        )
+        assert r.status_code == 200
+        assert 'Formato não permitido' in r.data.decode()
+
+    def test_criar_pausar_e_reativar_plano_recorrente(self, admin_client, app):
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Recorrente')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Recorrente'"
+            ).fetchone()['id']
+            prof_id = db.execute("SELECT id FROM profissionais LIMIT 1").fetchone()['id']
+            proc_id = db.execute("SELECT id FROM procedimentos LIMIT 1").fetchone()['id']
+
+        criar = admin_client.post(f'/pacientes/{pac_id}/planos', data={
+            'profissional_id': str(prof_id),
+            'procedimento_id': str(proc_id),
+            'intervalo_dias': '30',
+            'proxima_data': '2026-08-01',
+        }, follow_redirects=False)
+        assert criar.status_code == 302
+
+        editar = admin_client.get(f'/pacientes/editar/{pac_id}')
+        assert 'a cada 30 dias' in editar.data.decode()
+        assert 'Ativo' in editar.data.decode()
+
+        with app.app_context():
+            from app.infrastructure.container import plano_recorrente_repo
+            plano_id = plano_recorrente_repo().listar_por_paciente(pac_id)[0].id
+
+        pausar = admin_client.post(
+            f'/pacientes/{pac_id}/planos/{plano_id}/pausar', follow_redirects=False
+        )
+        assert pausar.status_code == 302
+        editar_pausado = admin_client.get(f'/pacientes/editar/{pac_id}')
+        assert 'Pausado' in editar_pausado.data.decode()
+
+        reativar = admin_client.post(
+            f'/pacientes/{pac_id}/planos/{plano_id}/reativar', follow_redirects=False
+        )
+        assert reativar.status_code == 302
+        editar_reativado = admin_client.get(f'/pacientes/editar/{pac_id}')
+        assert 'Ativo' in editar_reativado.data.decode()
+
+
+class TestRelatorios:
+    def test_faltas_200(self, admin_client):
+        assert admin_client.get('/relatorios/faltas').status_code == 200
+
+    def test_faltas_recepcao_tem_acesso(self, recepcao_client):
+        assert recepcao_client.get('/relatorios/faltas').status_code == 200
+
+    def test_faltas_sem_login_redireciona(self, client):
+        r = client.get('/relatorios/faltas', follow_redirects=False)
+        assert r.status_code == 302
+        assert '/login' in r.headers['Location']
+
+
+class TestRecorrentes:
+    def test_index_200(self, admin_client):
+        assert admin_client.get('/recorrentes/').status_code == 200
+
+    def test_sem_login_redireciona(self, client):
+        r = client.get('/recorrentes/', follow_redirects=False)
+        assert r.status_code == 302
+        assert '/login' in r.headers['Location']
+
+    def test_fluxo_completo_agendar_e_concluir_avanca_plano(self, admin_client, app):
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            from app.infrastructure.container import plano_recorrente_repo
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Aparelho')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Aparelho'"
+            ).fetchone()['id']
+            prof_id = db.execute("SELECT id FROM profissionais LIMIT 1").fetchone()['id']
+            proc_id = db.execute("SELECT id FROM procedimentos LIMIT 1").fetchone()['id']
+
+        criar_plano = admin_client.post(f'/pacientes/{pac_id}/planos', data={
+            'profissional_id': str(prof_id),
+            'procedimento_id': str(proc_id),
+            'intervalo_dias': '30',
+            'proxima_data': '2026-07-20',
+        })
+        assert criar_plano.status_code == 302
+
+        with app.app_context():
+            from app.infrastructure.container import plano_recorrente_repo
+            plano = plano_recorrente_repo().listar_por_paciente(pac_id)[0]
+
+        # A página de recorrentes deve listar o plano e trazer o link de agendar
+        listagem = admin_client.get('/recorrentes/?dias=30')
+        assert 'Paciente Aparelho' in listagem.data.decode()
+        assert f'plano_recorrente_id={plano.id}' in listagem.data.decode()
+
+        # Agenda a partir do plano (simula clique em "Agendar")
+        criar_ag = admin_client.post('/agenda/novo', data={
+            'profissional_id': str(prof_id),
+            'paciente_id': str(pac_id),
+            'procedimento_id': str(proc_id),
+            'data_hora_inicio': '2026-07-20T09:00',
+            'plano_recorrente_id': str(plano.id),
+        }, follow_redirects=False)
+        assert criar_ag.status_code == 302
+
+        with app.app_context():
+            from app.infrastructure.container import agendamento_repo
+            ag = agendamento_repo().listar_por_periodo('2026-07-20 00:00', '2026-07-20 23:59')[0]
+            assert ag.plano_recorrente_id == plano.id
+
+        # Conclui o agendamento e verifica que o plano avançou
+        admin_client.post(f'/agenda/status/{ag.id}', data={'status': 'concluido'})
+
+        with app.app_context():
+            from app.infrastructure.container import plano_recorrente_repo
+            plano_atualizado = plano_recorrente_repo().buscar_por_id(plano.id)
+        assert plano_atualizado.proxima_data == '2026-08-19'

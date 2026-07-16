@@ -63,7 +63,7 @@ def _salvar(prof_existente):
             id=prof_existente.id if prof_existente else None,
             nome=request.form['nome'].strip(),
             especialidade=request.form.get('especialidade', '').strip() or None,
-            cor_hex=request.form.get('cor_hex', '#3498db').strip(),
+            cor_hex=request.form.get('cor_hex', '#2563eb').strip(),
             horario_inicio=request.form.get('horario_inicio', '08:00'),
             horario_fim=request.form.get('horario_fim', '18:00'),
             dias_semana=dias_str,

@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Painel do dia</div>
+    <div class="page-subtitle">Visão geral da clínica hoje</div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card kpi-accent">
+    <div class="kpi-label">Agendamentos hoje</div>
+    <div class="kpi-value">{{ dados.total_hoje }}</div>
+  </div>
+  <div class="kpi-card kpi-success">
+    <div class="kpi-label">Faturamento previsto</div>
+    <div class="kpi-value">R$ {{ '%.2f'|format(dados.faturamento_previsto) }}</div>
+  </div>
+  <div class="kpi-card kpi-teal">
+    <div class="kpi-label">Faturamento realizado</div>
+    <div class="kpi-value">R$ {{ '%.2f'|format(dados.faturamento_realizado) }}</div>
+  </div>
+  <div class="kpi-card kpi-warning">
+    <div class="kpi-label">Faltas hoje</div>
+    <div class="kpi-value">{{ dados.contagem_status.get('falta', 0) }}</div>
+  </div>
+</div>
+
+<div class="dashboard-cols">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Próximos atendimentos</div>
+    </div>
+    {% if dados.proximos_atendimentos %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Horário</th><th>Paciente</th><th>Procedimento</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for ag in dados.proximos_atendimentos %}
+            <tr>
+              <td>{{ ag.data_hora_inicio[11:16] }}</td>
+              <td>{{ ag.paciente_nome }}</td>
+              <td>{{ ag.procedimento_nome }}</td>
+              <td><span class="badge badge-{{ ag.status }}">{{ status_label.get(ag.status, ag.status) }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="page-subtitle">Nenhum atendimento pendente para hoje.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🎂 Aniversariantes de hoje</div>
+    </div>
+    {% if dados.aniversariantes %}
+      <ul class="aniversariante-list">
+        {% for p in dados.aniversariantes %}
+        <li>
+          <span>{{ p.nome }}</span>
+          {% if p.telefone %}<span class="page-subtitle">{{ p.telefone }}</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="page-subtitle">Nenhum aniversariante hoje.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🔁 Recorrentes vencendo (7 dias)</div>
+      <a href="{{ url_for('recorrentes.index') }}" class="btn btn-ghost btn-sm">Ver todos</a>
+    </div>
+    {% if dados.recorrentes_vencendo %}
+      <ul class="aniversariante-list">
+        {% for p in dados.recorrentes_vencendo %}
+        <li>
+          <span>{{ p.paciente_nome }} — {{ p.procedimento_nome }}</span>
+          <span class="page-subtitle">{{ p.proxima_data }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="page-subtitle">Nenhum paciente recorrente vencendo esta semana.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

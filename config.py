@@ -10,6 +10,9 @@ class Config:
     ENV = os.getenv('FLASK_ENV', 'production')
     DEBUG = ENV == 'development'
 
+    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', './data/uploads')
+    MAX_CONTENT_LENGTH = 8 * 1024 * 1024  # 8MB por upload
+
     WHATSAPP_API_URL = os.getenv('WHATSAPP_API_URL', '')
     WHATSAPP_API_KEY = os.getenv('WHATSAPP_API_KEY', '')
     WHATSAPP_INSTANCE = os.getenv('WHATSAPP_INSTANCE', '')

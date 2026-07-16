@@ -49,7 +49,8 @@
             {% for p in procedimentos %}
             <option value="{{ p.id }}" data-duracao="{{ p.duracao_minutos }}"
               {{ 'selected' if (fd.procedimento_id|string == p.id|string)
-                               or (ag and ag.procedimento_id == p.id) }}>
+                               or (ag and ag.procedimento_id == p.id)
+                               or (pre.procedimento_id == p.id|string) }}>
               {{ p.nome }} ({{ p.duracao_minutos }} min)
             </option>
             {% endfor %}
@@ -78,10 +79,10 @@
       <div class="form-group" style="position:relative">
         <label>Paciente *</label>
         <input type="hidden" name="paciente_id" id="inp-paciente-id"
-               value="{{ fd.paciente_id or (ag.paciente_id if ag else '') }}" required>
+               value="{{ fd.paciente_id or (ag.paciente_id if ag else pre.paciente_id) }}" required>
         <input type="text" id="inp-paciente-texto" class="form-control"
                placeholder="Digite o nome (mín. 3 caracteres)…" autocomplete="off"
-               value="{{ ag.paciente_nome if ag else '' }}">
+               value="{{ ag.paciente_nome if ag else (pre.paciente_nome or '') }}">
         <div id="autocomplete-lista" style="
           display:none;position:absolute;z-index:200;background:#fff;
           border:1px solid var(--border);border-radius:6px;
@@ -95,6 +96,9 @@
              class="btn btn-ghost btn-sm" style="font-size:.75rem">+ Cadastrar novo paciente</a>
         </div>
       </div>
+
+      <input type="hidden" name="plano_recorrente_id"
+             value="{{ fd.plano_recorrente_id or pre.plano_recorrente_id or '' }}">
 
       <!-- Observações -->
       <div class="form-group">
@@ -120,8 +124,22 @@
   </div>
 
   <!-- Painel lateral: mudança de status (só na edição) -->
+  <div style="min-width:200px">
+  {% if sugestao_retorno %}
+  <div class="retorno-box">
+    <p><strong>Retorno sugerido:</strong> {{ sugestao_retorno.strftime('%d/%m/%Y') }}</p>
+    <a class="btn btn-primary btn-sm"
+       href="{{ url_for('agenda.novo',
+                         profissional_id=ag.profissional_id,
+                         paciente_id=ag.paciente_id,
+                         data=sugestao_retorno.strftime('%Y-%m-%d'),
+                         hora=ag.data_hora_inicio[11:16]) }}">
+      Agendar retorno
+    </a>
+  </div>
+  {% endif %}
   {% if ag and proximos_status %}
-  <div class="card" style="min-width:200px">
+  <div class="card">
     <div class="card-header">
       <span class="card-title" style="font-size:.85rem">Alterar status</span>
     </div>
@@ -136,6 +154,7 @@
     {% endfor %}
   </div>
   {% endif %}
+  </div>
 
 </div>
 {% endblock %}

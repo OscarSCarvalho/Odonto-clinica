@@ -85,3 +85,20 @@ class TestSqlitePacienteRepo:
         p = repo.criar(_pac(nome='Zezinho Inativo', cpf=None))
         repo.desativar(p.id)
         assert repo.buscar_por_nome('Zezinho') == []
+
+    def test_listar_aniversariantes_do_dia(self, conn):
+        repo = _repo(conn)
+        repo.criar(_pac(nome='Aniversariante Hoje', cpf=None, telefone=None,
+                         data_nascimento='1990-07-16'))
+        repo.criar(_pac(nome='Outro Dia', cpf=None, telefone=None,
+                         data_nascimento='1990-08-20'))
+        resultado = repo.listar_aniversariantes_do_dia(7, 16)
+        assert len(resultado) == 1
+        assert resultado[0].nome == 'Aniversariante Hoje'
+
+    def test_listar_aniversariantes_ignora_inativos(self, conn):
+        repo = _repo(conn)
+        p = repo.criar(_pac(nome='Inativo Aniversario', cpf=None, telefone=None,
+                             data_nascimento='1990-07-16'))
+        repo.desativar(p.id)
+        assert repo.listar_aniversariantes_do_dia(7, 16) == []

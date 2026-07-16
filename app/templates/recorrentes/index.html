@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Pacientes Recorrentes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Pacientes Recorrentes</div>
+    <div class="page-subtitle">Manutenções periódicas (ex: aparelho ortodôntico) que precisam ser reagendadas</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <form method="GET" style="display:flex;gap:.75rem;align-items:flex-end">
+    <div class="form-group" style="margin:0">
+      <label>Mostrar vencendo em até</label>
+      <select name="dias" class="form-control" onchange="this.form.submit()">
+        <option value="7"  {{ 'selected' if dias_janela == 7  else '' }}>7 dias</option>
+        <option value="14" {{ 'selected' if dias_janela == 14 else '' }}>14 dias</option>
+        <option value="30" {{ 'selected' if dias_janela == 30 else '' }}>30 dias</option>
+        <option value="90" {{ 'selected' if dias_janela == 90 else '' }}>90 dias</option>
+      </select>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  {% if planos %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Paciente</th><th>Profissional</th><th>Procedimento</th>
+          <th>Próxima data</th><th>Situação</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in planos %}
+        {% set data_prox = p.proxima_data|string %}
+        {% set atrasado = data_prox < hoje.isoformat() %}
+        <tr>
+          <td>
+            <strong>{{ p.paciente_nome }}</strong>
+            {% if p.paciente_telefone %}<br><span class="page-subtitle">{{ p.paciente_telefone }}</span>{% endif %}
+          </td>
+          <td>{{ p.profissional_nome }}</td>
+          <td>{{ p.procedimento_nome }}</td>
+          <td>{{ p.proxima_data }}{% if p.horario_preferido %} às {{ p.horario_preferido }}{% endif %}</td>
+          <td>
+            {% if atrasado %}
+            <span class="badge badge-falta">Atrasado</span>
+            {% else %}
+            <span class="badge badge-agendado">No prazo</span>
+            {% endif %}
+          </td>
+          <td>
+            <a class="btn btn-primary btn-sm"
+               href="{{ url_for('agenda.novo',
+                                 profissional_id=p.profissional_id,
+                                 paciente_id=p.paciente_id,
+                                 procedimento_id=p.procedimento_id,
+                                 data=p.proxima_data,
+                                 hora=p.horario_preferido or '',
+                                 plano_recorrente_id=p.id) }}">
+              Agendar
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="page-subtitle">Nenhum paciente recorrente vencendo nesse período.</p>
+  {% endif %}
+</div>
+{% endblock %}

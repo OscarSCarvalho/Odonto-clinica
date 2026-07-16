@@ -10,6 +10,7 @@ class Procedimento:
     duracao_minutos: int
     cor_hex: str
     preco_base: Optional[float] = None
+    retorno_dias: Optional[int] = None
     ativo: bool = True
 
     def __post_init__(self):
@@ -19,3 +20,5 @@ class Procedimento:
             raise DadosInvalidosError("Duração mínima é 5 minutos")
         if not self.cor_hex.startswith('#') or len(self.cor_hex) != 7:
             raise DadosInvalidosError("Cor deve estar no formato #RRGGBB")
+        if self.retorno_dias is not None and self.retorno_dias < 1:
+            raise DadosInvalidosError("Retorno sugerido deve ser de ao menos 1 dia")

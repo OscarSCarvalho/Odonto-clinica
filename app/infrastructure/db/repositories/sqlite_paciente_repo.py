@@ -100,3 +100,15 @@ class SqlitePacienteRepository(PacienteRepository):
             'UPDATE pacientes SET ativo = 0 WHERE id = ?', (id,)
         )
         self._conn.commit()
+
+    def listar_aniversariantes_do_dia(self, mes: int, dia: int) -> list[Paciente]:
+        rows = self._conn.execute(
+            '''SELECT * FROM pacientes
+               WHERE ativo = 1
+                 AND data_nascimento IS NOT NULL
+                 AND CAST(strftime('%m', data_nascimento) AS INTEGER) = ?
+                 AND CAST(strftime('%d', data_nascimento) AS INTEGER) = ?
+               ORDER BY nome''',
+            (mes, dia),
+        ).fetchall()
+        return [_row_to_entity(r) for r in rows]

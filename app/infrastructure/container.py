@@ -5,6 +5,8 @@ from app.infrastructure.db.repositories.sqlite_procedimento_repo import SqlitePr
 from app.infrastructure.db.repositories.sqlite_paciente_repo import SqlitePacienteRepository
 from app.infrastructure.db.repositories.sqlite_agendamento_repo import SqliteAgendamentoRepository
 from app.infrastructure.db.repositories.sqlite_lembrete_repo import SqliteLembreteRepository
+from app.infrastructure.db.repositories.sqlite_anexo_repo import SqliteAnexoRepository
+from app.infrastructure.db.repositories.sqlite_plano_recorrente_repo import SqlitePlanoRecorrenteRepository
 from app.infrastructure.notifications.whatsapp_adapter import WhatsAppAdapter
 from app.infrastructure.notifications.email_adapter import EmailAdapter
 from app.application.verificar_conflito import VerificarConflito
@@ -15,6 +17,11 @@ from app.application.listar_agenda import ListarAgenda
 from app.application.listar_slots_disponiveis import ListarSlotsDisponiveis
 from app.application.autoagendar_paciente import AutoagendarPaciente
 from app.application.enviar_lembretes import EnviarLembretes
+from app.application.obter_dashboard import ObterDashboard
+from app.application.sugerir_retorno import SugerirRetorno
+from app.application.relatorio_faltas import RelatorioFaltas
+from app.application.listar_planos_vencendo import ListarPlanosVencendo
+from app.application.avancar_plano_recorrente import AvancarPlanoRecorrente
 
 
 def profissional_repo():
@@ -87,3 +94,31 @@ def _email_adapter():
 
 def enviar_lembretes_uc():
     return EnviarLembretes(agendamento_repo(), lembrete_repo(), _whatsapp_adapter(), _email_adapter())
+
+
+def obter_dashboard_uc():
+    return ObterDashboard(agendamento_repo(), paciente_repo(), plano_recorrente_repo())
+
+
+def sugerir_retorno_uc():
+    return SugerirRetorno(procedimento_repo())
+
+
+def relatorio_faltas_uc():
+    return RelatorioFaltas(agendamento_repo())
+
+
+def anexo_repo():
+    return SqliteAnexoRepository(get_db())
+
+
+def plano_recorrente_repo():
+    return SqlitePlanoRecorrenteRepository(get_db())
+
+
+def listar_planos_vencendo_uc():
+    return ListarPlanosVencendo(plano_recorrente_repo())
+
+
+def avancar_plano_uc():
+    return AvancarPlanoRecorrente(plano_recorrente_repo())

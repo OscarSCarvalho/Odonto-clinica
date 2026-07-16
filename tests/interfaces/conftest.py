@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import pytest
 from run import create_app
@@ -8,12 +9,18 @@ from run import create_app
 def app():
     db_fd, db_path = tempfile.mkstemp(suffix='.db')
     os.close(db_fd)
+    upload_dir = tempfile.mkdtemp()
 
-    application = create_app({'TESTING': True, 'DB_PATH': db_path})
+    application = create_app({
+        'TESTING': True,
+        'DB_PATH': db_path,
+        'UPLOAD_FOLDER': upload_dir,
+    })
 
     yield application
 
     os.unlink(db_path)
+    shutil.rmtree(upload_dir, ignore_errors=True)
 
 
 @pytest.fixture

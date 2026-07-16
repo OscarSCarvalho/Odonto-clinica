@@ -48,12 +48,14 @@ def _salvar(proc_existente):
     try:
         duracao_raw = request.form.get('duracao_minutos', '').strip()
         preco_raw   = request.form.get('preco_base', '').strip()
+        retorno_raw = request.form.get('retorno_dias', '').strip()
 
         if not duracao_raw or not duracao_raw.lstrip('-').isdigit():
             raise DadosInvalidosError('Duração é obrigatória e deve ser um número inteiro.')
 
         duracao = int(duracao_raw)
         preco   = float(preco_raw) if preco_raw else None
+        retorno_dias = int(retorno_raw) if retorno_raw else None
 
         if preco is not None and preco < 0:
             raise DadosInvalidosError('Preço não pode ser negativo.')
@@ -64,6 +66,7 @@ def _salvar(proc_existente):
             duracao_minutos=duracao,
             cor_hex=request.form.get('cor_hex', '#e74c3c').strip(),
             preco_base=preco,
+            retorno_dias=retorno_dias,
         )
     except (DadosInvalidosError, ValueError) as e:
         flash(str(e) if isinstance(e, DadosInvalidosError) else 'Valor inválido.', 'erro')

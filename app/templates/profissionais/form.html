@@ -31,10 +31,10 @@
         <label>Cor *</label>
         <div style="display:flex;gap:.5rem;align-items:center">
           <input type="color" name="cor_hex" id="cor_hex"
-                 value="{{ fd.cor_hex or (prof.cor_hex if prof else '#3498db') }}"
+                 value="{{ fd.cor_hex or (prof.cor_hex if prof else '#2563eb') }}"
                  style="width:48px;height:38px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">
           <input type="text" id="cor_hex_text" class="form-control"
-                 value="{{ fd.cor_hex or (prof.cor_hex if prof else '#3498db') }}"
+                 value="{{ fd.cor_hex or (prof.cor_hex if prof else '#2563eb') }}"
                  style="width:110px" placeholder="#000000" maxlength="7">
         </div>
       </div>

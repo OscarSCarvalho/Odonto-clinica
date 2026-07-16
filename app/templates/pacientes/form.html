@@ -52,4 +52,104 @@
     </div>
   </form>
 </div>
+
+{% if pac %}
+<div class="card" style="max-width:640px;margin-top:1rem">
+  <div class="card-header">
+    <div class="card-title">Anexos (fotos e exames)</div>
+  </div>
+  {% if anexos %}
+  <ul class="anexo-list">
+    {% for a in anexos %}
+    <li>
+      <a class="anexo-nome"
+         href="{{ url_for('pacientes.download_anexo', paciente_id=pac.id, anexo_id=a.id) }}">
+        {{ a.nome_original }}
+      </a>
+      <span class="page-subtitle">{{ a.criado_em }}</span>
+      <form method="POST"
+            action="{{ url_for('pacientes.excluir_anexo', paciente_id=pac.id, anexo_id=a.id) }}"
+            onsubmit="return confirm('Remover este anexo?')">
+        <button class="btn btn-danger btn-sm">Remover</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="page-subtitle">Nenhum anexo enviado ainda.</p>
+  {% endif %}
+  <form method="POST" action="{{ url_for('pacientes.upload_anexo', paciente_id=pac.id) }}"
+        enctype="multipart/form-data"
+        style="margin-top:1rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+    <input type="file" name="arquivo" accept=".jpg,.jpeg,.png,.pdf" required>
+    <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+  </form>
+</div>
+
+<div class="card" style="max-width:640px;margin-top:1rem">
+  <div class="card-header">
+    <div class="card-title">Paciente recorrente (manutenção periódica)</div>
+  </div>
+  {% if planos %}
+  <ul class="anexo-list">
+    {% for p in planos %}
+    <li>
+      <span class="anexo-nome">
+        {{ p.procedimento_nome }} com {{ p.profissional_nome }} — a cada {{ p.intervalo_dias }} dias
+        <br><span class="page-subtitle">Próxima: {{ p.proxima_data }}{% if p.horario_preferido %} às {{ p.horario_preferido }}{% endif %}</span>
+      </span>
+      <span class="badge badge-{{ 'ativo' if p.ativo else 'inativo' }}">{{ 'Ativo' if p.ativo else 'Pausado' }}</span>
+      {% if p.ativo %}
+      <form method="POST" action="{{ url_for('pacientes.pausar_plano', paciente_id=pac.id, plano_id=p.id) }}">
+        <button class="btn btn-ghost btn-sm">Pausar</button>
+      </form>
+      {% else %}
+      <form method="POST" action="{{ url_for('pacientes.reativar_plano', paciente_id=pac.id, plano_id=p.id) }}">
+        <button class="btn btn-ghost btn-sm">Reativar</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="page-subtitle">Nenhum plano de recorrência cadastrado.</p>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('pacientes.criar_plano', paciente_id=pac.id) }}"
+        style="margin-top:1rem;display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap">
+    <div class="form-group" style="margin:0">
+      <label>Profissional *</label>
+      <select name="profissional_id" class="form-control" required>
+        <option value="">Selecione…</option>
+        {% for prof in profissionais %}
+        <option value="{{ prof.id }}">{{ prof.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Procedimento *</label>
+      <select name="procedimento_id" class="form-control" required>
+        <option value="">Selecione…</option>
+        {% for proc in procedimentos %}
+        <option value="{{ proc.id }}">{{ proc.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>A cada (dias) *</label>
+      <input type="number" name="intervalo_dias" class="form-control" min="1" step="1"
+             placeholder="Ex: 30" style="width:100px" required>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Próxima data</label>
+      <input type="date" name="proxima_data" class="form-control">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Horário preferido</label>
+      <input type="time" name="horario_preferido" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+  </form>
+</div>
+{% endif %}
 {% endblock %}

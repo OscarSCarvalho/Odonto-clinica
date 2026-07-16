@@ -25,6 +25,7 @@ class CriarAgendamento:
         data_hora_inicio: str,
         observacoes: str = None,
         origem: str = 'interno',
+        plano_recorrente_id: int = None,
     ) -> Agendamento:
         procedimento = self._proc_repo.buscar_por_id(procedimento_id)
         inicio_dt = datetime.fromisoformat(data_hora_inicio)
@@ -42,5 +43,6 @@ class CriarAgendamento:
             data_hora_fim=data_hora_fim,
             observacoes=observacoes,
             origem=origem,
+            plano_recorrente_id=plano_recorrente_id,
         )
         return self._ag_repo.criar(agendamento)

@@ -70,12 +70,13 @@
     const filtro     = document.getElementById('filtro-profissional');
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
-      locale:       'pt-br',
-      initialView:  'timeGridWeek',
-      height:       'auto',
-      nowIndicator: true,
-      allDaySlot:   false,
-      slotDuration: '00:15:00',
+      locale:            'pt-br',
+      initialView:       'timeGridDay',
+      height:             'auto',
+      nowIndicator:       true,
+      allDaySlot:         false,
+      slotDuration:       '00:15:00',
+      slotLabelInterval:  '01:00:00',
       slotMinTime:  calcSlotMin(null),
       slotMaxTime:  calcSlotMax(null),
       businessHours: businessHoursParaProfissional(null),
@@ -143,16 +144,22 @@
 
     calendar.render();
 
-    // ── Filtro de profissional ──
-    filtro.addEventListener('change', function () {
-      profFiltroId = this.value || null;
-      infoExpediente(profFiltroId);
+    // ── Filtro de profissional (chips) ──
+    const chips = filtro.querySelectorAll('.prof-chip');
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
 
-      // Atualiza businessHours e slot range dinamicamente
-      calendar.setOption('businessHours', businessHoursParaProfissional(profFiltroId));
-      calendar.setOption('slotMinTime',   calcSlotMin(profFiltroId));
-      calendar.setOption('slotMaxTime',   calcSlotMax(profFiltroId));
-      calendar.refetchEvents();
+        profFiltroId = chip.dataset.id || null;
+        infoExpediente(profFiltroId);
+
+        // Atualiza businessHours e slot range dinamicamente
+        calendar.setOption('businessHours', businessHoursParaProfissional(profFiltroId));
+        calendar.setOption('slotMinTime',   calcSlotMin(profFiltroId));
+        calendar.setOption('slotMaxTime',   calcSlotMax(profFiltroId));
+        calendar.refetchEvents();
+      });
     });
   });
 })();

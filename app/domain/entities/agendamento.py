@@ -18,6 +18,7 @@ class Agendamento:
     status: str = 'agendado'
     observacoes: Optional[str] = None
     origem: str = 'interno'
+    plano_recorrente_id: Optional[int] = None
 
     @property
     def inicio_dt(self) -> datetime:

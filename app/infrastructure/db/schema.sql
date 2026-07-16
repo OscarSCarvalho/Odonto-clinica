@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS profissionais (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     nome           TEXT    NOT NULL,
     especialidade  TEXT,
-    cor_hex        TEXT    NOT NULL DEFAULT '#3498db',
+    cor_hex        TEXT    NOT NULL DEFAULT '#2563eb',
     horario_inicio TEXT    NOT NULL DEFAULT '08:00',
     horario_fim    TEXT    NOT NULL DEFAULT '18:00',
     dias_semana    TEXT    NOT NULL DEFAULT '1,2,3,4,5',
@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS procedimentos (
     duracao_minutos INTEGER NOT NULL DEFAULT 30,
     cor_hex         TEXT    NOT NULL DEFAULT '#e74c3c',
     preco_base      REAL,
+    retorno_dias    INTEGER,
     ativo           INTEGER NOT NULL DEFAULT 1
 );
 
@@ -44,21 +45,38 @@ CREATE TABLE IF NOT EXISTS pacientes (
     criado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS planos_recorrentes (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id       INTEGER NOT NULL REFERENCES pacientes(id),
+    profissional_id   INTEGER NOT NULL REFERENCES profissionais(id),
+    procedimento_id   INTEGER NOT NULL REFERENCES procedimentos(id),
+    intervalo_dias    INTEGER NOT NULL,
+    proxima_data      TEXT    NOT NULL,
+    horario_preferido TEXT,
+    observacoes       TEXT,
+    ativo             INTEGER NOT NULL DEFAULT 1,
+    criado_em         TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_planos_recorrentes_proxima_data
+    ON planos_recorrentes(proxima_data);
+
 CREATE TABLE IF NOT EXISTS agendamentos (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    profissional_id  INTEGER NOT NULL REFERENCES profissionais(id),
-    paciente_id      INTEGER NOT NULL REFERENCES pacientes(id),
-    procedimento_id  INTEGER NOT NULL REFERENCES procedimentos(id),
-    data_hora_inicio TEXT    NOT NULL,
-    data_hora_fim    TEXT    NOT NULL,
-    status           TEXT    NOT NULL DEFAULT 'agendado'
-                     CHECK(status IN ('agendado','confirmado','em_atendimento',
-                                      'concluido','cancelado','falta')),
-    observacoes      TEXT,
-    origem           TEXT    NOT NULL DEFAULT 'interno'
-                     CHECK(origem IN ('interno','autoagendamento')),
-    criado_em        TEXT    NOT NULL DEFAULT (datetime('now')),
-    atualizado_em    TEXT    NOT NULL DEFAULT (datetime('now'))
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    profissional_id     INTEGER NOT NULL REFERENCES profissionais(id),
+    paciente_id         INTEGER NOT NULL REFERENCES pacientes(id),
+    procedimento_id     INTEGER NOT NULL REFERENCES procedimentos(id),
+    data_hora_inicio    TEXT    NOT NULL,
+    data_hora_fim       TEXT    NOT NULL,
+    status              TEXT    NOT NULL DEFAULT 'agendado'
+                        CHECK(status IN ('agendado','confirmado','aguardando','em_atendimento',
+                                         'concluido','cancelado','falta')),
+    observacoes         TEXT,
+    origem              TEXT    NOT NULL DEFAULT 'interno'
+                        CHECK(origem IN ('interno','autoagendamento')),
+    plano_recorrente_id INTEGER REFERENCES planos_recorrentes(id),
+    criado_em           TEXT    NOT NULL DEFAULT (datetime('now')),
+    atualizado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_agendamentos_profissional_data
@@ -85,3 +103,13 @@ CREATE TABLE IF NOT EXISTS config_lembretes (
     tipo           TEXT    NOT NULL CHECK(tipo IN ('whatsapp','email')),
     ativo          INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE TABLE IF NOT EXISTS paciente_anexos (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id     INTEGER NOT NULL REFERENCES pacientes(id),
+    nome_original   TEXT    NOT NULL,
+    caminho_arquivo TEXT    NOT NULL,
+    criado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_anexos_paciente ON paciente_anexos(paciente_id);

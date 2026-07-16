@@ -13,7 +13,7 @@ def index():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
-        return redirect(url_for('agenda.index'))
+        return redirect(url_for('dashboard.index'))
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
@@ -29,7 +29,7 @@ def login():
             session['user_id'] = usuario['id']
             session['perfil'] = usuario['perfil']
             session['nome'] = usuario['nome']
-            return redirect(url_for('agenda.index'))
+            return redirect(url_for('dashboard.index'))
 
         flash('E-mail ou senha inválidos.', 'erro')
 

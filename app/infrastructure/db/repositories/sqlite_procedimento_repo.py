@@ -12,6 +12,7 @@ def _row_to_entity(row: sqlite3.Row) -> Procedimento:
         duracao_minutos=row['duracao_minutos'],
         cor_hex=row['cor_hex'],
         preco_base=row['preco_base'],
+        retorno_dias=row['retorno_dias'],
         ativo=bool(row['ativo']),
     )
 
@@ -37,13 +38,14 @@ class SqliteProcedimentoRepository(ProcedimentoRepository):
         if procedimento.duracao_minutos < 5:
             raise DadosInvalidosError("Duração mínima é 5 minutos")
         cur = self._conn.execute(
-            '''INSERT INTO procedimentos (nome, duracao_minutos, cor_hex, preco_base, ativo)
-               VALUES (?, ?, ?, ?, 1)''',
+            '''INSERT INTO procedimentos (nome, duracao_minutos, cor_hex, preco_base, retorno_dias, ativo)
+               VALUES (?, ?, ?, ?, ?, 1)''',
             (
                 procedimento.nome,
                 procedimento.duracao_minutos,
                 procedimento.cor_hex,
                 procedimento.preco_base,
+                procedimento.retorno_dias,
             ),
         )
         self._conn.commit()
@@ -55,13 +57,14 @@ class SqliteProcedimentoRepository(ProcedimentoRepository):
             raise DadosInvalidosError("Duração mínima é 5 minutos")
         self._conn.execute(
             '''UPDATE procedimentos
-               SET nome=?, duracao_minutos=?, cor_hex=?, preco_base=?, ativo=?
+               SET nome=?, duracao_minutos=?, cor_hex=?, preco_base=?, retorno_dias=?, ativo=?
                WHERE id=?''',
             (
                 procedimento.nome,
                 procedimento.duracao_minutos,
                 procedimento.cor_hex,
                 procedimento.preco_base,
+                procedimento.retorno_dias,
                 int(procedimento.ativo),
                 procedimento.id,
             ),

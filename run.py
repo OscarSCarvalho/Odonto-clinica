@@ -2,11 +2,14 @@ from flask import Flask
 from config import Config
 from app.infrastructure.db.connection import init_db, close_db
 from app.interfaces.auth.routes import auth_bp
+from app.interfaces.dashboard.routes import dashboard_bp
 from app.interfaces.agenda.routes import agenda_bp
 from app.interfaces.profissionais.routes import profissionais_bp
 from app.interfaces.procedimentos.routes import procedimentos_bp
 from app.interfaces.pacientes.routes import pacientes_bp
 from app.interfaces.configuracoes.routes import configuracoes_bp
+from app.interfaces.relatorios.routes import relatorios_bp
+from app.interfaces.recorrentes.routes import recorrentes_bp
 from app.interfaces.publico.routes import publico_bp
 
 
@@ -20,11 +23,14 @@ def create_app(config=None):
     app.teardown_appcontext(close_db)
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
     app.register_blueprint(agenda_bp)
     app.register_blueprint(profissionais_bp)
     app.register_blueprint(procedimentos_bp)
     app.register_blueprint(pacientes_bp)
     app.register_blueprint(configuracoes_bp)
+    app.register_blueprint(relatorios_bp)
+    app.register_blueprint(recorrentes_bp)
     app.register_blueprint(publico_bp)
 
     with app.app_context():

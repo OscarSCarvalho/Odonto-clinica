@@ -60,12 +60,12 @@ def _seed(conn):
     conn.execute(
         "INSERT INTO profissionais (nome, especialidade, cor_hex, horario_inicio, horario_fim, dias_semana) "
         "VALUES (?, ?, ?, ?, ?, ?)",
-        ('Dr. Carlos Silva', 'Ortodontia', '#3498db', '08:00', '18:00', '1,2,3,4,5')
+        ('Dr. Carlos Silva', 'Ortodontia', '#2563eb', '08:00', '18:00', '1,2,3,4,5')
     )
 
     conn.execute(
         "INSERT INTO procedimentos (nome, duracao_minutos, cor_hex, preco_base) VALUES (?, ?, ?, ?)",
-        ('Consulta', 30, '#2ecc71', 150.00)
+        ('Consulta', 30, '#10b981', 150.00)
     )
     conn.execute(
         "INSERT INTO procedimentos (nome, duracao_minutos, cor_hex, preco_base) VALUES (?, ?, ?, ?)",

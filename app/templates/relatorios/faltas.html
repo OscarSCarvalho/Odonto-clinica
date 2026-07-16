@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Relatório de Faltas{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Faltas e Cancelamentos</div>
+    <div class="page-subtitle">Acompanhe ausências por período, profissional e paciente</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <form method="GET" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+    <div class="form-group" style="margin:0">
+      <label>De</label>
+      <input type="date" name="inicio" class="form-control" value="{{ inicio }}">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Até</label>
+      <input type="date" name="fim" class="form-control" value="{{ fim }}">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Profissional</label>
+      <select name="profissional_id" class="form-control">
+        <option value="">Todos</option>
+        {% for p in profissionais %}
+        <option value="{{ p.id }}" {{ 'selected' if profissional_id == p.id else '' }}>{{ p.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+  </form>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card kpi-accent">
+    <div class="kpi-label">Agendamentos no período</div>
+    <div class="kpi-value">{{ dados.total_agendamentos }}</div>
+  </div>
+  <div class="kpi-card kpi-warning">
+    <div class="kpi-label">Faltas</div>
+    <div class="kpi-value">{{ dados.total_faltas }}</div>
+  </div>
+  <div class="kpi-card kpi-danger">
+    <div class="kpi-label">Cancelamentos</div>
+    <div class="kpi-value">{{ dados.total_cancelamentos }}</div>
+  </div>
+  <div class="kpi-card kpi-teal">
+    <div class="kpi-label">Taxa de ausência</div>
+    <div class="kpi-value">{{ '%.1f'|format(dados.taxa_ausencia) }}%</div>
+  </div>
+</div>
+
+<div class="dashboard-cols">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Por profissional</div></div>
+    {% if dados.por_profissional %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Profissional</th><th>Faltas</th><th>Cancelamentos</th></tr></thead>
+        <tbody>
+          {% for nome, c in dados.por_profissional.items() %}
+          <tr><td>{{ nome }}</td><td>{{ c.falta }}</td><td>{{ c.cancelado }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="page-subtitle">Nenhuma ausência no período.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Pacientes com mais ausências</div></div>
+    {% if dados.por_paciente %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Paciente</th><th>Faltas</th><th>Cancelamentos</th></tr></thead>
+        <tbody>
+          {% for nome, c in dados.por_paciente %}
+          <tr><td>{{ nome }}</td><td>{{ c.falta }}</td><td>{{ c.cancelado }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="page-subtitle">Nenhuma ausência no período.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

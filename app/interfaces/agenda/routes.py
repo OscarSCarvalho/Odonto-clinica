@@ -4,9 +4,9 @@ from flask import (Blueprint, render_template, request,
 from app.interfaces.auth.decorators import requer_login, requer_perfil
 from app.domain.exceptions import ConflitodeHorarioError, HorarioForaDoExpedienteError, AgendamentoNaoEditavelError
 from app.infrastructure.container import (
-    profissional_repo, procedimento_repo, paciente_repo,
+    profissional_repo, procedimento_repo, paciente_repo, agendamento_repo,
     criar_agendamento_uc, editar_agendamento_uc,
-    cancelar_agendamento_uc, listar_agenda_uc,
+    cancelar_agendamento_uc, listar_agenda_uc, sugerir_retorno_uc, avancar_plano_uc,
 )
 from app.infrastructure.color_utils import darken_hex
 
@@ -15,6 +15,7 @@ agenda_bp = Blueprint('agenda', __name__, url_prefix='/agenda')
 _STATUS_LABEL = {
     'agendado': 'Agendado',
     'confirmado': 'Confirmado',
+    'aguardando': 'Aguardando atendimento',
     'em_atendimento': 'Em atendimento',
     'concluido': 'Concluído',
     'cancelado': 'Cancelado',
@@ -22,8 +23,9 @@ _STATUS_LABEL = {
 }
 
 _STATUS_PROXIMOS = {
-    'agendado': ['confirmado', 'cancelado', 'falta'],
-    'confirmado': ['em_atendimento', 'cancelado', 'falta'],
+    'agendado': ['confirmado', 'aguardando', 'cancelado', 'falta'],
+    'confirmado': ['aguardando', 'em_atendimento', 'cancelado', 'falta'],
+    'aguardando': ['em_atendimento', 'cancelado', 'falta'],
     'em_atendimento': ['concluido'],
     'concluido': [],
     'cancelado': [],
@@ -52,8 +54,8 @@ def api_eventos():
 
     # Profissional autenticado vê apenas seus próprios eventos (CB-08)
     if session.get('perfil') == 'profissional':
-        db = __import__('app.infrastructure.db.connection', fromlist=['get_db']).get_db()
-        row = db.execute(
+        from app.infrastructure.db.connection import get_db
+        row = get_db().execute(
             'SELECT id FROM profissionais WHERE usuario_id = ?', (session['user_id'],)
         ).fetchone()
         if row:
@@ -62,7 +64,7 @@ def api_eventos():
     agendamentos = listar_agenda_uc().executar(inicio, fim, prof_id)
     eventos = []
     for ag in agendamentos:
-        cor = getattr(ag, 'procedimento_cor', '#3498db')
+        cor = getattr(ag, 'procedimento_cor', '#2563eb')
         eventos.append({
             'id': ag.id,
             'title': f"{getattr(ag,'paciente_nome','?')} — {getattr(ag,'procedimento_nome','?')}",
@@ -123,12 +125,19 @@ def novo():
 
     profissionais = profissional_repo().listar_ativos()
     procedimentos = procedimento_repo().listar_ativos()
-    # Pré-preenchimento via querystring (clique no calendário)
+    # Pré-preenchimento via querystring (clique no calendário, retorno sugerido ou recorrência)
     pre = {
-        'profissional_id': request.args.get('profissional_id', ''),
-        'data':            request.args.get('data', ''),
-        'hora':            request.args.get('hora', ''),
+        'profissional_id':      request.args.get('profissional_id', ''),
+        'procedimento_id':      request.args.get('procedimento_id', ''),
+        'data':                 request.args.get('data', ''),
+        'hora':                 request.args.get('hora', ''),
+        'paciente_id':          request.args.get('paciente_id', ''),
+        'paciente_nome':        '',
+        'plano_recorrente_id':  request.args.get('plano_recorrente_id', ''),
     }
+    if pre['paciente_id']:
+        pac = paciente_repo().buscar_por_id(int(pre['paciente_id']))
+        pre['paciente_nome'] = pac.nome if pac else ''
     return render_template('agenda/form.html',
                            ag=None,
                            profissionais=profissionais,
@@ -140,8 +149,7 @@ def novo():
 @agenda_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @requer_perfil('admin', 'recepcao')
 def editar(id):
-    repo_ag = __import__('app.infrastructure.container', fromlist=['agendamento_repo']).agendamento_repo()
-    ag = repo_ag.buscar_por_id(id)
+    ag = agendamento_repo().buscar_por_id(id)
     if not ag:
         flash('Agendamento não encontrado.', 'erro')
         return redirect(url_for('agenda.index'))
@@ -152,13 +160,19 @@ def editar(id):
     profissionais = profissional_repo().listar_ativos()
     procedimentos = procedimento_repo().listar_ativos()
     proximos_status = _STATUS_PROXIMOS.get(ag.status, [])
+
+    sugestao_retorno = None
+    if ag.status == 'concluido':
+        sugestao_retorno = sugerir_retorno_uc().executar(ag.procedimento_id, ag.data_hora_inicio)
+
     return render_template('agenda/form.html',
                            ag=ag,
                            profissionais=profissionais,
                            procedimentos=procedimentos,
                            pre={},
                            status_label=_STATUS_LABEL,
-                           proximos_status=proximos_status)
+                           proximos_status=proximos_status,
+                           sugestao_retorno=sugestao_retorno)
 
 
 @agenda_bp.route('/cancelar/<int:id>', methods=['POST'])
@@ -176,9 +190,12 @@ def cancelar(id):
 @requer_perfil('admin', 'recepcao')
 def mudar_status(id):
     novo_status = request.form.get('status')
+    ag = agendamento_repo().buscar_por_id(id)
     try:
         editar_agendamento_uc().executar(id, status=novo_status)
         flash(f'Status atualizado para "{_STATUS_LABEL.get(novo_status, novo_status)}".', 'sucesso')
+        if novo_status == 'concluido' and ag and ag.plano_recorrente_id:
+            avancar_plano_uc().executar(ag.plano_recorrente_id, ag.data_hora_inicio)
     except AgendamentoNaoEditavelError as e:
         flash(str(e), 'erro')
     return redirect(url_for('agenda.editar', id=id))
@@ -193,12 +210,14 @@ def _criar():
         if inicio_dt < datetime.now():
             flash('Não é possível criar agendamentos no passado.', 'erro')
             raise ValueError('data no passado')
+        plano_id_raw = request.form.get('plano_recorrente_id', '').strip()
         ag = criar_agendamento_uc().executar(
             profissional_id=int(request.form['profissional_id']),
             paciente_id=int(request.form['paciente_id']),
             procedimento_id=int(request.form['procedimento_id']),
             data_hora_inicio=inicio,
             observacoes=request.form.get('observacoes', '').strip() or None,
+            plano_recorrente_id=int(plano_id_raw) if plano_id_raw else None,
         )
         flash('Agendamento criado com sucesso.', 'sucesso')
         return redirect(url_for('agenda.index'))

@@ -32,3 +32,7 @@ class PacienteRepository(ABC):
     @abstractmethod
     def desativar(self, id: int) -> None:
         ...
+
+    @abstractmethod
+    def listar_aniversariantes_do_dia(self, mes: int, dia: int) -> list[Paciente]:
+        ...

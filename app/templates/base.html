@@ -12,16 +12,22 @@
 <body>
 
 <nav class="navbar">
-  <a class="navbar-brand" href="{{ url_for('agenda.index') }}">
+  <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
     Odonto<span>Clinica</span>
   </a>
 
   <ul class="navbar-nav">
+    <li><a href="{{ url_for('dashboard.index') }}"
+           class="{{ 'active' if request.blueprint == 'dashboard' else '' }}">Dashboard</a></li>
     <li><a href="{{ url_for('agenda.index') }}"
            class="{{ 'active' if request.blueprint == 'agenda' else '' }}">Agenda</a></li>
     {% if session.get('perfil') in ('admin', 'recepcao') %}
     <li><a href="{{ url_for('pacientes.index') }}"
            class="{{ 'active' if request.blueprint == 'pacientes' else '' }}">Pacientes</a></li>
+    <li><a href="{{ url_for('recorrentes.index') }}"
+           class="{{ 'active' if request.blueprint == 'recorrentes' else '' }}">Recorrentes</a></li>
+    <li><a href="{{ url_for('relatorios.faltas') }}"
+           class="{{ 'active' if request.blueprint == 'relatorios' else '' }}">Relatórios</a></li>
     {% endif %}
     {% if session.get('perfil') == 'admin' %}
     <li><a href="{{ url_for('profissionais.index') }}"

@@ -1,16 +1,20 @@
 :root {
-  --primary: #2c3e50;
-  --primary-light: #34495e;
-  --accent: #3498db;
-  --danger: #e74c3c;
-  --success: #2ecc71;
-  --warning: #f39c12;
-  --bg: #f4f6f8;
+  --primary: #0d9488;
+  --primary-light: #14b8a6;
+  --primary-dark: #115e59;
+  --accent: #2563eb;
+  --accent-light: #3b82f6;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --bg: #f3f7f6;
   --card: #ffffff;
   --border: #dde1e7;
-  --text: #2c3e50;
-  --text-muted: #7f8c8d;
+  --text: #1f2937;
+  --text-muted: #6b7280;
   --sidebar-width: 220px;
+  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  --gradient-accent: linear-gradient(135deg, var(--accent), #1d4ed8);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,7 +29,7 @@ body {
 
 /* ── Navbar ── */
 .navbar {
-  background: var(--primary);
+  background: var(--gradient-primary);
   color: #fff;
   display: flex;
   align-items: center;
@@ -46,7 +50,7 @@ body {
   letter-spacing: .5px;
 }
 
-.navbar-brand span { color: var(--accent); }
+.navbar-brand span { color: #5eead4; }
 
 .navbar-nav {
   display: flex;
@@ -138,7 +142,7 @@ body {
 .btn:hover { opacity: .88; transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 
-.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary { background: var(--gradient-accent); color: #fff; }
 .btn-danger  { background: var(--danger); color: #fff; }
 .btn-success { background: var(--success); color: #fff; }
 .btn-ghost   { background: transparent; color: var(--text); border: 1px solid var(--border); }
@@ -171,7 +175,7 @@ body {
 .form-control:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(52,152,219,.15);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
 }
 
 .form-row {
@@ -202,7 +206,7 @@ thead th {
 }
 
 tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
-tbody tr:hover { background: rgba(52,152,219,.04); }
+tbody tr:hover { background: rgba(37,99,235,.04); }
 tbody td { padding: .7rem 1rem; vertical-align: middle; }
 
 /* ── Badges de status ── */
@@ -216,12 +220,18 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   letter-spacing: .4px;
 }
 
-.badge-agendado      { background: #eaf4fb; color: #2980b9; }
-.badge-confirmado    { background: #eafaf1; color: #1e8449; }
-.badge-em_atendimento{ background: #fef9e7; color: #d68910; }
-.badge-concluido     { background: #eafaf1; color: #1e8449; }
-.badge-cancelado     { background: #fdedec; color: #c0392b; }
+.badge-agendado      { background: #dbeafe; color: #1d4ed8; }
+.badge-confirmado    { background: #ccfbf1; color: #0f766e; }
+.badge-aguardando    { background: #fef9c3; color: #854d0e; }
+.badge-em_atendimento{ background: #fef3c7; color: #b45309; animation: pulse-badge 1.6s ease-in-out infinite; }
+.badge-concluido     { background: #d1fae5; color: #047857; }
+.badge-cancelado     { background: #fee2e2; color: #b91c1c; }
 .badge-falta         { background: #f5f5f5; color: #7f8c8d; }
+
+@keyframes pulse-badge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+  50%      { box-shadow: 0 0 0 4px rgba(245,158,11,0); }
+}
 
 /* ── Alertas / Flash ── */
 .alert {
@@ -259,36 +269,95 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 }
 
 /* ── Agenda (FullCalendar overrides) ── */
-#calendar { font-size: .8rem; }
+#calendar { font-size: .85rem; }
 
-.fc-toolbar-title { font-size: 1rem !important; font-weight: 600 !important; }
+.fc-toolbar-title { font-size: 1.15rem !important; font-weight: 700 !important; color: var(--primary); }
 
 .fc-button {
-  background: var(--accent) !important;
+  background: var(--gradient-accent) !important;
   border: none !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   font-size: .8rem !important;
-  padding: .3rem .7rem !important;
+  padding: .35rem .8rem !important;
+  box-shadow: 0 2px 6px rgba(37,99,235,.25) !important;
+  transition: transform .1s, box-shadow .1s !important;
 }
 
-.fc-button:hover { opacity: .88 !important; }
+.fc-button:hover  { opacity: .92 !important; transform: translateY(-1px); }
+.fc-button:active { transform: translateY(0); }
+
+.fc-button-active {
+  background: var(--gradient-primary) !important;
+  box-shadow: 0 2px 6px rgba(13,148,136,.3) !important;
+}
 
 /* Separa os botões de visualização (mês/semana/dia) */
 .fc-button-group {
-  gap: .3rem !important;
+  gap: .35rem !important;
 }
 .fc-button-group .fc-button {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
 /* Separa os botões prev/next/hoje do lado esquerdo */
 .fc-toolbar-chunk {
-  gap: .3rem !important;
+  gap: .35rem !important;
   display: flex !important;
   align-items: center !important;
 }
 
-.fc-non-business { background: #f0f0f0 !important; }
+/* Grade mais suave — menos "planilha" */
+.fc-theme-standard td, .fc-theme-standard th { border-color: #e8edf1 !important; }
+.fc-timegrid-slot-minor { border-top-style: dotted !important; }
+
+/* Fora do expediente: tom sutil em vez de cinza chapado */
+.fc-non-business { background: rgba(107,114,128,.05) !important; }
+
+/* Fim de semana com leve destaque */
+.fc-day-sat, .fc-day-sun { background: rgba(13,148,136,.03); }
+
+/* Dia atual: coluna e número destacados */
+.fc-day-today { background: rgba(37,99,235,.05) !important; }
+.fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: var(--accent);
+  font-weight: 700;
+}
+.fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background: var(--gradient-accent);
+  color: #fff;
+  border-radius: 50%;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+}
+
+.fc-col-header-cell-cushion {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-muted);
+  padding: .5rem 0 !important;
+}
+
+/* Eventos: cards em vez de células */
+.fc-timegrid-event, .fc-daygrid-event {
+  border-radius: 8px !important;
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  padding: 2px 4px;
+  transition: transform .1s, box-shadow .1s;
+}
+.fc-timegrid-event:hover, .fc-daygrid-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.22);
+  cursor: pointer;
+}
+.fc-event-title { font-weight: 600; }
+.fc-event-time  { font-weight: 700; }
+
+.fc-now-indicator-line { border-color: var(--danger) !important; border-width: 2px !important; }
+.fc-now-indicator-arrow { border-color: var(--danger) !important; }
 
 /* ── Filtros da agenda ── */
 .agenda-filters {
@@ -298,6 +367,46 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   margin-bottom: 1rem;
   flex-wrap: wrap;
 }
+
+/* Chips coloridos de profissional (substitui o <select>) */
+.prof-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.prof-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .8rem;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--text);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+
+.prof-chip:hover { transform: translateY(-1px); border-color: var(--accent); }
+
+.prof-chip.active {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,.3);
+}
+
+.chip-dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.prof-chip.active .chip-dot { background: #fff !important; }
 
 /* ── Autoagendamento público ── */
 .publico-container {
@@ -329,7 +438,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 
 .profissional-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(52,152,219,.15);
+  box-shadow: 0 4px 12px rgba(37,99,235,.15);
 }
 
 .slots-grid {
@@ -354,7 +463,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 
 .slot-btn:hover {
   border-color: var(--accent);
-  background: #eaf4fb;
+  background: #dbeafe;
 }
 
 .stepper {
@@ -383,6 +492,67 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .badge-inativo { background: #f5f5f5; color: #7f8c8d; }
 .badge-success { background: #eafaf1; color: #1e8449; }
 .badge-muted   { background: #f5f5f5; color: #7f8c8d; }
+
+/* ── Dashboard ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+
+.kpi-label { font-size: .8rem; opacity: .9; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.kpi-value { font-size: 1.9rem; font-weight: 700; margin-top: .35rem; }
+
+.kpi-accent  { background: var(--gradient-accent); }
+.kpi-success { background: linear-gradient(135deg, #10b981, #047857); }
+.kpi-teal    { background: var(--gradient-primary); }
+.kpi-warning { background: linear-gradient(135deg, #f59e0b, #b45309); }
+.kpi-danger  { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+
+.dashboard-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.aniversariante-list { list-style: none; }
+.aniversariante-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.aniversariante-list li:last-child { border-bottom: none; }
+
+/* ── Anexos do paciente ── */
+.anexo-list { list-style: none; }
+.anexo-list li {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.anexo-list li:last-child { border-bottom: none; }
+.anexo-list .anexo-nome { flex: 1; }
+
+/* ── Aviso de retorno sugerido ── */
+.retorno-box {
+  background: #fef9e7;
+  border-left: 4px solid #f39c12;
+  border-radius: 8px;
+  padding: .9rem 1rem;
+  margin-bottom: .75rem;
+}
+.retorno-box p { margin: 0 0 .6rem; font-size: .85rem; color: #7a5b00; }
 
 /* ── Responsivo ── */
 @media (max-width: 768px) {

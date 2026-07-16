@@ -15,11 +15,13 @@ def _row_to_entity(row: sqlite3.Row) -> Agendamento:
         status=row['status'],
         observacoes=row['observacoes'],
         origem=row['origem'],
+        plano_recorrente_id=row['plano_recorrente_id'],
     )
     # Campos extras presentes nos JOINs (opcionais)
     for campo in ('profissional_nome', 'profissional_cor', 'paciente_nome',
                   'paciente_telefone', 'paciente_email',
-                  'procedimento_nome', 'procedimento_cor', 'procedimento_duracao'):
+                  'procedimento_nome', 'procedimento_cor', 'procedimento_duracao',
+                  'procedimento_preco'):
         if campo in row.keys():
             setattr(ag, campo, row[campo])
     return ag
@@ -35,7 +37,8 @@ _SELECT_COM_JOIN = '''
         pac.email    AS paciente_email,
         pr.nome AS procedimento_nome,
         pr.cor_hex AS procedimento_cor,
-        pr.duracao_minutos AS procedimento_duracao
+        pr.duracao_minutos AS procedimento_duracao,
+        pr.preco_base AS procedimento_preco
     FROM agendamentos a
     JOIN profissionais p   ON p.id  = a.profissional_id
     JOIN pacientes    pac  ON pac.id = a.paciente_id
@@ -101,8 +104,9 @@ class SqliteAgendamentoRepository(AgendamentoRepository):
         cur = self._conn.execute(
             '''INSERT INTO agendamentos
                (profissional_id, paciente_id, procedimento_id,
-                data_hora_inicio, data_hora_fim, status, observacoes, origem)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                data_hora_inicio, data_hora_fim, status, observacoes, origem,
+                plano_recorrente_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (
                 agendamento.profissional_id,
                 agendamento.paciente_id,
@@ -112,6 +116,7 @@ class SqliteAgendamentoRepository(AgendamentoRepository):
                 agendamento.status,
                 agendamento.observacoes,
                 agendamento.origem,
+                agendamento.plano_recorrente_id,
             ),
         )
         self._conn.commit()
