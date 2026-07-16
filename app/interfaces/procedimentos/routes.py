@@ -47,14 +47,14 @@ def _salvar(proc_existente):
     repo = procedimento_repo()
     try:
         duracao_raw = request.form.get('duracao_minutos', '').strip()
-        preco_raw   = request.form.get('preco_base', '').strip()
+        preco_raw = request.form.get('preco_base', '').strip()
         retorno_raw = request.form.get('retorno_dias', '').strip()
 
         if not duracao_raw or not duracao_raw.lstrip('-').isdigit():
             raise DadosInvalidosError('Duração é obrigatória e deve ser um número inteiro.')
 
         duracao = int(duracao_raw)
-        preco   = float(preco_raw) if preco_raw else None
+        preco = float(preco_raw) if preco_raw else None
         retorno_dias = int(retorno_raw) if retorno_raw else None
 
         if preco is not None and preco < 0:

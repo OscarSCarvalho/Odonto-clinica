@@ -49,7 +49,7 @@ def index():
 @requer_login
 def api_eventos():
     inicio = request.args.get('start', '')[:16].replace('T', ' ')
-    fim    = request.args.get('end',   '')[:16].replace('T', ' ')
+    fim = request.args.get('end', '')[:16].replace('T', ' ')
     prof_id = request.args.get('profissional_id', type=int)
 
     # Profissional autenticado vê apenas seus próprios eventos (CB-08)
@@ -67,7 +67,7 @@ def api_eventos():
         cor = getattr(ag, 'procedimento_cor', '#2563eb')
         eventos.append({
             'id': ag.id,
-            'title': f"{getattr(ag,'paciente_nome','?')} — {getattr(ag,'procedimento_nome','?')}",
+            'title': f"{getattr(ag, 'paciente_nome', '?')} — {getattr(ag, 'procedimento_nome', '?')}",
             'start': ag.data_hora_inicio.replace(' ', 'T'),
             'end':   ag.data_hora_fim.replace(' ', 'T'),
             'backgroundColor': cor,
@@ -211,7 +211,7 @@ def _criar():
             flash('Não é possível criar agendamentos no passado.', 'erro')
             raise ValueError('data no passado')
         plano_id_raw = request.form.get('plano_recorrente_id', '').strip()
-        ag = criar_agendamento_uc().executar(
+        criar_agendamento_uc().executar(
             profissional_id=int(request.form['profissional_id']),
             paciente_id=int(request.form['paciente_id']),
             procedimento_id=int(request.form['procedimento_id']),

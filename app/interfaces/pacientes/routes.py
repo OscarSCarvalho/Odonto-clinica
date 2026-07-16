@@ -33,6 +33,7 @@ def _validar_cpf(cpf_raw: str) -> tuple[bool, str]:
             return False, 'CPF inválido.'
     return True, ''
 
+
 pacientes_bp = Blueprint('pacientes', __name__, url_prefix='/pacientes')
 
 

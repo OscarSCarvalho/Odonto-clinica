@@ -68,7 +68,6 @@ class SqliteLembreteRepository(LembreteRepository):
         self, agendamento_id: int, tipo: str, antecedencia_h: int,
         status: str, tentativas: int, erro_msg: Optional[str] = None
     ) -> None:
-        enviado_em = "datetime('now')" if status == 'enviado' else None
         if status == 'enviado':
             self._conn.execute(
                 "INSERT INTO lembretes_enviados "

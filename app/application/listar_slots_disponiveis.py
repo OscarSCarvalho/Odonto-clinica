@@ -12,7 +12,7 @@ class ListarSlotsDisponiveis:
         profissional_repo: ProfissionalRepository,
         procedimento_repo: ProcedimentoRepository,
     ):
-        self._ag_repo   = agendamento_repo
+        self._ag_repo = agendamento_repo
         self._prof_repo = profissional_repo
         self._proc_repo = procedimento_repo
 
@@ -38,7 +38,7 @@ class ListarSlotsDisponiveis:
         for slot in slots_candidatos:
             inicio = f'{data} {slot}'
             fim_dt = datetime.strptime(inicio, '%Y-%m-%d %H:%M') + timedelta(minutes=procedimento.duracao_minutos)
-            fim    = fim_dt.strftime('%Y-%m-%d %H:%M')
+            fim = fim_dt.strftime('%Y-%m-%d %H:%M')
 
             conflitos = self._ag_repo.buscar_conflitos(profissional_id, inicio, fim)
             if not conflitos:
@@ -49,9 +49,9 @@ class ListarSlotsDisponiveis:
     @staticmethod
     def _gerar_slots(data: str, h_inicio: str, h_fim: str, duracao: int) -> list[str]:
         inicio = datetime.strptime(f'{data} {h_inicio}', '%Y-%m-%d %H:%M')
-        fim    = datetime.strptime(f'{data} {h_fim}',    '%Y-%m-%d %H:%M')
-        slots  = []
-        atual  = inicio
+        fim = datetime.strptime(f'{data} {h_fim}', '%Y-%m-%d %H:%M')
+        slots = []
+        atual = inicio
         while atual + timedelta(minutes=duracao) <= fim:
             slots.append(atual.strftime('%H:%M'))
             atual += timedelta(minutes=duracao)

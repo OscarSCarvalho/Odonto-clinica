@@ -7,7 +7,7 @@ class AutoagendarPaciente:
 
     def __init__(self, paciente_repo: PacienteRepository, criar_agendamento: CriarAgendamento):
         self._pac_repo = paciente_repo
-        self._criar    = criar_agendamento
+        self._criar = criar_agendamento
 
     def executar(
         self,

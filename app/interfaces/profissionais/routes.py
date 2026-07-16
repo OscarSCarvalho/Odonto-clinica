@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.interfaces.auth.decorators import requer_perfil
 from app.domain.entities.profissional import Profissional
 from app.domain.exceptions import DadosInvalidosError

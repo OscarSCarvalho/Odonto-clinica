@@ -42,8 +42,8 @@ def step2_procedimento():
 
 @publico_bp.route('/data')
 def step3_data():
-    prof_id  = request.args.get('profissional_id', type=int)
-    proc_id  = request.args.get('procedimento_id', type=int)
+    prof_id = request.args.get('profissional_id', type=int)
+    proc_id = request.args.get('procedimento_id', type=int)
     data_str = request.args.get('data', '')
 
     if not prof_id or not proc_id:
@@ -54,9 +54,9 @@ def step3_data():
     if not profissional or not procedimento:
         return redirect(url_for('publico.step1_profissional'))
 
-    slots       = []
+    slots = []
     data_valida = None
-    erro_dia    = False
+    erro_dia = False
 
     if data_str:
         try:
@@ -88,10 +88,10 @@ def step3_data():
 
 @publico_bp.route('/confirmar')
 def step4_confirmar():
-    prof_id  = request.args.get('profissional_id', type=int)
-    proc_id  = request.args.get('procedimento_id', type=int)
+    prof_id = request.args.get('profissional_id', type=int)
+    proc_id = request.args.get('procedimento_id', type=int)
     data_str = request.args.get('data', '')
-    slot     = request.args.get('slot', '')
+    slot = request.args.get('slot', '')
 
     if not all([prof_id, proc_id, data_str, slot]):
         return redirect(url_for('publico.step1_profissional'))
@@ -120,13 +120,13 @@ def step4_confirmar():
 
 @publico_bp.route('/finalizar', methods=['POST'])
 def finalizar():
-    prof_id  = request.form.get('profissional_id', type=int)
-    proc_id  = request.form.get('procedimento_id', type=int)
+    prof_id = request.form.get('profissional_id', type=int)
+    proc_id = request.form.get('procedimento_id', type=int)
     data_str = request.form.get('data', '')
-    slot     = request.form.get('slot', '')
-    nome     = request.form.get('nome', '').strip()
+    slot = request.form.get('slot', '')
+    nome = request.form.get('nome', '').strip()
     telefone = request.form.get('telefone', '').strip()
-    email    = request.form.get('email', '').strip() or None
+    email = request.form.get('email', '').strip() or None
 
     if not all([prof_id, proc_id, data_str, slot, nome, telefone]):
         flash('Preencha todos os campos obrigatórios.', 'erro')
@@ -172,9 +172,9 @@ def sucesso(id):
         return redirect(url_for('publico.step1_profissional'))
 
     try:
-        data_fmt   = datetime.strptime(ag.data_hora_inicio[:10], '%Y-%m-%d').strftime('%d/%m/%Y')
+        data_fmt = datetime.strptime(ag.data_hora_inicio[:10], '%Y-%m-%d').strftime('%d/%m/%Y')
         dia_semana = _DIAS_PT[datetime.strptime(ag.data_hora_inicio[:10], '%Y-%m-%d').weekday()]
-        hora_fmt   = ag.data_hora_inicio[11:16]
+        hora_fmt = ag.data_hora_inicio[11:16]
     except (ValueError, IndexError):
         data_fmt = dia_semana = hora_fmt = '—'
 
@@ -191,7 +191,7 @@ def sucesso(id):
 def _google_calendar_url(ag, data_fmt) -> str:
     try:
         inicio = ag.data_hora_inicio.replace(' ', 'T').replace(':', '').replace('-', '')
-        fim    = ag.data_hora_fim.replace(' ', 'T').replace(':', '').replace('-', '')
+        fim = ag.data_hora_fim.replace(' ', 'T').replace(':', '').replace('-', '')
         titulo = f'Consulta%20{getattr(ag, "procedimento_nome", "")}%20-%20{getattr(ag, "profissional_nome", "")}'
         return (f'https://calendar.google.com/calendar/render?action=TEMPLATE'
                 f'&text={titulo}&dates={inicio}/{fim}')
