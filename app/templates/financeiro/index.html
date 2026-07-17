@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Contas a Receber{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Contas a Receber</div>
+    <div class="page-subtitle">Pagamentos de atendimentos e mensalidades pendentes</div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card kpi-accent">
+    <div class="kpi-label">Total a receber</div>
+    <div class="kpi-value">R$ {{ '%.2f'|format(dados.total_pendente) }}</div>
+  </div>
+  <div class="kpi-card kpi-danger">
+    <div class="kpi-label">Em atraso</div>
+    <div class="kpi-value">R$ {{ '%.2f'|format(dados.total_atrasado) }}</div>
+  </div>
+  <div class="kpi-card kpi-warning">
+    <div class="kpi-label">Cobranças atrasadas</div>
+    <div class="kpi-value">{{ dados.quantidade_atrasada }}</div>
+  </div>
+</div>
+
+<div class="card">
+  {% if dados.pagamentos %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Paciente</th><th>Origem</th><th>Valor</th>
+          <th>Vencimento</th><th>Situação</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in dados.pagamentos %}
+        {% set atrasado = p.data_vencimento < hoje.isoformat() %}
+        <tr>
+          <td>
+            <strong>{{ p.paciente_nome }}</strong>
+            {% if p.paciente_telefone %}<br><span class="page-subtitle">{{ p.paciente_telefone }}</span>{% endif %}
+          </td>
+          <td>{{ p.procedimento_nome if p.agendamento_id else 'Mensalidade' }}</td>
+          <td>R$ {{ '%.2f'|format(p.valor) }}</td>
+          <td>{{ p.data_vencimento }}</td>
+          <td>
+            {% if atrasado %}
+            <span class="badge badge-falta">Atrasado</span>
+            {% else %}
+            <span class="badge badge-agendado">No prazo</span>
+            {% endif %}
+          </td>
+          <td>
+            <button type="button" class="btn btn-primary btn-sm"
+                    onclick="document.getElementById('pagar-{{ p.id }}').classList.toggle('hidden-form')">
+              Registrar pagamento
+            </button>
+            <form id="pagar-{{ p.id }}" method="POST"
+                  action="{{ url_for('financeiro.pagar', id=p.id) }}"
+                  class="hidden-form" style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+              <select name="forma_pagamento" class="form-control" required style="width:150px">
+                <option value="">Forma…</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="pix">Pix</option>
+                <option value="cartao_debito">Cartão débito</option>
+                <option value="cartao_credito">Cartão crédito</option>
+              </select>
+              <input type="date" name="data_pagamento" class="form-control" style="width:150px">
+              <input type="text" name="observacoes" class="form-control" placeholder="Observação (opcional)">
+              <button type="submit" class="btn btn-primary btn-sm">Confirmar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="page-subtitle">Nenhuma conta a receber no momento.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -9,9 +9,11 @@ from app.interfaces.auth.decorators import requer_login, requer_perfil
 from app.domain.entities.paciente import Paciente
 from app.domain.entities.anexo import Anexo, EXTENSOES_PERMITIDAS
 from app.domain.entities.plano_recorrente import PlanoRecorrente
+from app.domain.entities.mensalidade import Mensalidade
 from app.domain.exceptions import PacienteDuplicadoError, DadosInvalidosError
 from app.infrastructure.container import (
     paciente_repo, anexo_repo, plano_recorrente_repo, profissional_repo, procedimento_repo,
+    mensalidade_repo, pagamento_repo,
 )
 
 
@@ -174,6 +176,45 @@ def reativar_plano(paciente_id, plano_id):
     return redirect(url_for('pacientes.editar', id=paciente_id))
 
 
+@pacientes_bp.route('/<int:paciente_id>/mensalidades', methods=['POST'])
+@requer_perfil('admin', 'recepcao')
+def criar_mensalidade(paciente_id):
+    try:
+        valor_raw = request.form.get('valor', '').strip().replace(',', '.')
+        dia_raw = request.form.get('dia_vencimento', '').strip()
+        if not valor_raw or not dia_raw or not dia_raw.isdigit():
+            raise DadosInvalidosError('Informe valor e dia de vencimento válidos.')
+
+        mensalidade_repo().criar(Mensalidade(
+            id=None,
+            paciente_id=paciente_id,
+            valor=float(valor_raw),
+            dia_vencimento=int(dia_raw),
+            observacoes=request.form.get('observacoes', '').strip() or None,
+        ))
+        flash('Mensalidade cadastrada.', 'sucesso')
+    except (DadosInvalidosError, ValueError) as e:
+        mensagem = str(e) if isinstance(e, DadosInvalidosError) else 'Valor ou dia de vencimento inválido.'
+        flash(mensagem, 'erro')
+    return redirect(url_for('pacientes.editar', id=paciente_id))
+
+
+@pacientes_bp.route('/<int:paciente_id>/mensalidades/<int:mensalidade_id>/pausar', methods=['POST'])
+@requer_perfil('admin', 'recepcao')
+def pausar_mensalidade(paciente_id, mensalidade_id):
+    mensalidade_repo().desativar(mensalidade_id)
+    flash('Mensalidade pausada.', 'sucesso')
+    return redirect(url_for('pacientes.editar', id=paciente_id))
+
+
+@pacientes_bp.route('/<int:paciente_id>/mensalidades/<int:mensalidade_id>/reativar', methods=['POST'])
+@requer_perfil('admin', 'recepcao')
+def reativar_mensalidade(paciente_id, mensalidade_id):
+    mensalidade_repo().reativar(mensalidade_id)
+    flash('Mensalidade reativada.', 'sucesso')
+    return redirect(url_for('pacientes.editar', id=paciente_id))
+
+
 @pacientes_bp.route('/api/buscar')
 @requer_login
 def api_buscar():
@@ -193,6 +234,8 @@ def _contexto_form(pac_existente):
     return {
         'anexos': anexo_repo().listar_por_paciente(pac_existente.id),
         'planos': plano_recorrente_repo().listar_por_paciente(pac_existente.id),
+        'mensalidades': mensalidade_repo().listar_por_paciente(pac_existente.id),
+        'pagamentos': pagamento_repo().listar_por_paciente(pac_existente.id),
         'profissionais': profissional_repo().listar_ativos(),
         'procedimentos': procedimento_repo().listar_ativos(),
     }

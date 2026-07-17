@@ -516,6 +516,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .kpi-teal    { background: var(--gradient-primary); }
 .kpi-warning { background: linear-gradient(135deg, #f59e0b, #b45309); }
 .kpi-danger  { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.kpi-info    { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
 
 .dashboard-cols {
   display: grid;

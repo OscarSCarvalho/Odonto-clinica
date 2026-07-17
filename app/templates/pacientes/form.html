@@ -151,5 +151,85 @@
     <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
   </form>
 </div>
+
+<div class="card" style="max-width:640px;margin-top:1rem">
+  <div class="card-header">
+    <div class="card-title">Mensalidade</div>
+  </div>
+  {% if mensalidades %}
+  <ul class="anexo-list">
+    {% for m in mensalidades %}
+    <li>
+      <span class="anexo-nome">
+        R$ {{ '%.2f'|format(m.valor) }} — vence todo dia {{ m.dia_vencimento }}
+        {% if m.observacoes %}<br><span class="page-subtitle">{{ m.observacoes }}</span>{% endif %}
+      </span>
+      <span class="badge badge-{{ 'ativo' if m.ativo else 'inativo' }}">{{ 'Ativa' if m.ativo else 'Pausada' }}</span>
+      {% if m.ativo %}
+      <form method="POST" action="{{ url_for('pacientes.pausar_mensalidade', paciente_id=pac.id, mensalidade_id=m.id) }}">
+        <button class="btn btn-ghost btn-sm">Pausar</button>
+      </form>
+      {% else %}
+      <form method="POST" action="{{ url_for('pacientes.reativar_mensalidade', paciente_id=pac.id, mensalidade_id=m.id) }}">
+        <button class="btn btn-ghost btn-sm">Reativar</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="page-subtitle">Nenhuma mensalidade cadastrada.</p>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('pacientes.criar_mensalidade', paciente_id=pac.id) }}"
+        style="margin-top:1rem;display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap">
+    <div class="form-group" style="margin:0">
+      <label>Valor (R$) *</label>
+      <input type="number" name="valor" class="form-control" min="0.01" step="0.01"
+             placeholder="Ex: 150.00" style="width:120px" required>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Dia de vencimento *</label>
+      <input type="number" name="dia_vencimento" class="form-control" min="1" max="28"
+             placeholder="Ex: 10" style="width:100px" required>
+    </div>
+    <div class="form-group" style="margin:0;flex:1">
+      <label>Observações</label>
+      <input type="text" name="observacoes" class="form-control" placeholder="Opcional">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+  </form>
+</div>
+
+<div class="card" style="max-width:640px;margin-top:1rem">
+  <div class="card-header">
+    <div class="card-title">Histórico de pagamentos</div>
+  </div>
+  {% if pagamentos %}
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Origem</th><th>Valor</th><th>Vencimento</th><th>Situação</th></tr></thead>
+      <tbody>
+        {% for p in pagamentos %}
+        <tr>
+          <td>{{ p.procedimento_nome if p.agendamento_id else 'Mensalidade' }}</td>
+          <td>R$ {{ '%.2f'|format(p.valor) }}</td>
+          <td>{{ p.data_vencimento }}</td>
+          <td>
+            {% if p.status == 'pago' %}
+            <span class="badge badge-ativo">Pago</span>
+            {% else %}
+            <span class="badge badge-falta">Pendente</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="page-subtitle">Nenhum pagamento registrado ainda.</p>
+  {% endif %}
+</div>
 {% endif %}
 {% endblock %}

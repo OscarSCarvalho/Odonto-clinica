@@ -7,7 +7,7 @@ from app.infrastructure.container import (
     profissional_repo, procedimento_repo, paciente_repo, agendamento_repo,
     criar_agendamento_uc, editar_agendamento_uc,
     cancelar_agendamento_uc, listar_agenda_uc, sugerir_retorno_uc, avancar_plano_uc,
-    criar_tarefa_retorno_uc,
+    criar_tarefa_retorno_uc, criar_pagamento_atendimento_uc,
 )
 from app.infrastructure.color_utils import darken_hex
 
@@ -200,6 +200,7 @@ def mudar_status(id):
                 avancar_plano_uc().executar(ag.plano_recorrente_id, ag.data_hora_inicio)
             else:
                 criar_tarefa_retorno_uc().executar(ag)
+            criar_pagamento_atendimento_uc().executar(ag)
     except AgendamentoNaoEditavelError as e:
         flash(str(e), 'erro')
     return redirect(url_for('agenda.editar', id=id))

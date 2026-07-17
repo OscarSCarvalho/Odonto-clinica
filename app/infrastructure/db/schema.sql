@@ -126,3 +126,31 @@ CREATE TABLE IF NOT EXISTS tarefas_retorno (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tarefas_retorno_status ON tarefas_retorno(status);
+
+CREATE TABLE IF NOT EXISTS mensalidades (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id    INTEGER NOT NULL REFERENCES pacientes(id),
+    valor          REAL    NOT NULL,
+    dia_vencimento INTEGER NOT NULL,
+    observacoes    TEXT,
+    ativo          INTEGER NOT NULL DEFAULT 1,
+    criado_em      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS pagamentos (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id     INTEGER NOT NULL REFERENCES pacientes(id),
+    agendamento_id  INTEGER REFERENCES agendamentos(id),
+    mensalidade_id  INTEGER REFERENCES mensalidades(id),
+    valor           REAL    NOT NULL,
+    data_vencimento TEXT    NOT NULL,
+    forma_pagamento TEXT    CHECK(forma_pagamento IN ('dinheiro','pix','cartao_debito','cartao_credito')
+                                   OR forma_pagamento IS NULL),
+    status          TEXT    NOT NULL DEFAULT 'pendente' CHECK(status IN ('pendente','pago')),
+    data_pagamento  TEXT,
+    observacoes     TEXT,
+    criado_em       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_pagamentos_status ON pagamentos(status);
+CREATE INDEX IF NOT EXISTS idx_pagamentos_paciente ON pagamentos(paciente_id);

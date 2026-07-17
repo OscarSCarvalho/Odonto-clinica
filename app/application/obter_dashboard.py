@@ -3,6 +3,7 @@ from app.domain.repositories.agendamento_repo import AgendamentoRepository
 from app.domain.repositories.paciente_repo import PacienteRepository
 from app.domain.repositories.plano_recorrente_repo import PlanoRecorrenteRepository
 from app.domain.repositories.tarefa_retorno_repo import TarefaRetornoRepository
+from app.domain.repositories.pagamento_repo import PagamentoRepository
 
 
 class ObterDashboard:
@@ -13,11 +14,13 @@ class ObterDashboard:
         paciente_repo: PacienteRepository,
         plano_recorrente_repo: PlanoRecorrenteRepository,
         tarefa_retorno_repo: TarefaRetornoRepository,
+        pagamento_repo: PagamentoRepository,
     ):
         self._agendamentos = agendamento_repo
         self._pacientes = paciente_repo
         self._planos = plano_recorrente_repo
         self._tarefas_retorno = tarefa_retorno_repo
+        self._pagamentos = pagamento_repo
 
     def executar(self, hoje: date = None) -> dict:
         hoje = hoje or date.today()
@@ -50,6 +53,10 @@ class ObterDashboard:
             if date.fromisoformat(p.proxima_data) <= limite_recorrentes
         ]
 
+        pendentes = self._pagamentos.listar_pendentes()
+        total_a_receber = sum(p.valor for p in pendentes)
+        total_atrasado = sum(p.valor for p in pendentes if date.fromisoformat(p.data_vencimento) < hoje)
+
         return {
             'total_hoje': len(agendamentos_hoje),
             'contagem_status': contagem_status,
@@ -59,4 +66,6 @@ class ObterDashboard:
             'aniversariantes': aniversariantes,
             'recorrentes_vencendo': recorrentes_vencendo,
             'retornos_pendentes': len(self._tarefas_retorno.listar_pendentes()),
+            'total_a_receber': total_a_receber,
+            'total_atrasado': total_atrasado,
         }

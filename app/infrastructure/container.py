@@ -8,6 +8,8 @@ from app.infrastructure.db.repositories.sqlite_lembrete_repo import SqliteLembre
 from app.infrastructure.db.repositories.sqlite_anexo_repo import SqliteAnexoRepository
 from app.infrastructure.db.repositories.sqlite_plano_recorrente_repo import SqlitePlanoRecorrenteRepository
 from app.infrastructure.db.repositories.sqlite_tarefa_retorno_repo import SqliteTarefaRetornoRepository
+from app.infrastructure.db.repositories.sqlite_pagamento_repo import SqlitePagamentoRepository
+from app.infrastructure.db.repositories.sqlite_mensalidade_repo import SqliteMensalidadeRepository
 from app.infrastructure.notifications.whatsapp_adapter import WhatsAppAdapter
 from app.infrastructure.notifications.email_adapter import EmailAdapter
 from app.application.verificar_conflito import VerificarConflito
@@ -26,6 +28,9 @@ from app.application.avancar_plano_recorrente import AvancarPlanoRecorrente
 from app.application.criar_tarefa_retorno import CriarTarefaRetorno
 from app.application.relatorio_pacientes import RelatorioPacientes
 from app.application.relatorio_desempenho import RelatorioDesempenho
+from app.application.criar_pagamento_atendimento import CriarPagamentoAtendimento
+from app.application.gerar_cobrancas_mensalidades import GerarCobrancasMensalidades
+from app.application.listar_contas_receber import ListarContasReceber
 
 
 def profissional_repo():
@@ -101,7 +106,9 @@ def enviar_lembretes_uc():
 
 
 def obter_dashboard_uc():
-    return ObterDashboard(agendamento_repo(), paciente_repo(), plano_recorrente_repo(), tarefa_retorno_repo())
+    return ObterDashboard(
+        agendamento_repo(), paciente_repo(), plano_recorrente_repo(), tarefa_retorno_repo(), pagamento_repo()
+    )
 
 
 def sugerir_retorno_uc():
@@ -142,3 +149,23 @@ def relatorio_pacientes_uc():
 
 def relatorio_desempenho_uc():
     return RelatorioDesempenho(agendamento_repo())
+
+
+def pagamento_repo():
+    return SqlitePagamentoRepository(get_db())
+
+
+def mensalidade_repo():
+    return SqliteMensalidadeRepository(get_db())
+
+
+def criar_pagamento_atendimento_uc():
+    return CriarPagamentoAtendimento(pagamento_repo(), procedimento_repo())
+
+
+def gerar_cobrancas_mensalidades_uc():
+    return GerarCobrancasMensalidades(mensalidade_repo(), pagamento_repo())
+
+
+def listar_contas_receber_uc():
+    return ListarContasReceber(pagamento_repo())

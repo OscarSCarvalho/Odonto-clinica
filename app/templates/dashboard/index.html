@@ -30,6 +30,10 @@
     <div class="kpi-label">Retornos pendentes</div>
     <div class="kpi-value">{{ dados.retornos_pendentes }}</div>
   </div>
+  <div class="kpi-card kpi-info">
+    <div class="kpi-label">A receber</div>
+    <div class="kpi-value">R$ {{ '%.2f'|format(dados.total_a_receber) }}</div>
+  </div>
 </div>
 
 <div class="dashboard-cols">

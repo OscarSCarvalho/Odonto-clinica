@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 from app.interfaces.auth.decorators import requer_login
-from app.infrastructure.container import obter_dashboard_uc
+from app.infrastructure.container import obter_dashboard_uc, gerar_cobrancas_mensalidades_uc
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
@@ -18,5 +18,6 @@ _STATUS_LABEL = {
 @dashboard_bp.route('')
 @requer_login
 def index():
+    gerar_cobrancas_mensalidades_uc().executar()
     dados = obter_dashboard_uc().executar()
     return render_template('dashboard/index.html', dados=dados, status_label=_STATUS_LABEL)

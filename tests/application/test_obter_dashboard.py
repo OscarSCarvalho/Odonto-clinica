@@ -17,7 +17,7 @@ def _ag(status, preco, inicio='2026-07-16 09:00'):
     return a
 
 
-def _uc(agendamentos=None, aniversariantes=None, planos=None, tarefas_retorno=None):
+def _uc(agendamentos=None, aniversariantes=None, planos=None, tarefas_retorno=None, pagamentos_pendentes=None):
     ag_repo = MagicMock()
     ag_repo.listar_por_periodo.return_value = agendamentos or []
     pac_repo = MagicMock()
@@ -26,13 +26,15 @@ def _uc(agendamentos=None, aniversariantes=None, planos=None, tarefas_retorno=No
     plano_repo.listar_ativos.return_value = planos or []
     tarefa_repo = MagicMock()
     tarefa_repo.listar_pendentes.return_value = tarefas_retorno or []
-    return (ObterDashboard(ag_repo, pac_repo, plano_repo, tarefa_repo),
-            ag_repo, pac_repo, plano_repo, tarefa_repo)
+    pag_repo = MagicMock()
+    pag_repo.listar_pendentes.return_value = pagamentos_pendentes or []
+    return (ObterDashboard(ag_repo, pac_repo, plano_repo, tarefa_repo, pag_repo),
+            ag_repo, pac_repo, plano_repo, tarefa_repo, pag_repo)
 
 
 class TestObterDashboard:
     def test_totais_e_contagem_por_status(self):
-        uc, _, _, _, _ = _uc(agendamentos=[
+        uc, _, _, _, _, _ = _uc(agendamentos=[
             _ag('agendado', 100),
             _ag('confirmado', 150),
             _ag('cancelado', 200),
@@ -42,7 +44,7 @@ class TestObterDashboard:
         assert resultado['contagem_status'] == {'agendado': 1, 'confirmado': 1, 'cancelado': 1}
 
     def test_faturamento_previsto_exclui_cancelado_e_falta(self):
-        uc, _, _, _, _ = _uc(agendamentos=[
+        uc, _, _, _, _, _ = _uc(agendamentos=[
             _ag('agendado', 100),
             _ag('cancelado', 200),
             _ag('falta', 300),
@@ -51,7 +53,7 @@ class TestObterDashboard:
         assert resultado['faturamento_previsto'] == 100
 
     def test_faturamento_realizado_soma_apenas_concluidos(self):
-        uc, _, _, _, _ = _uc(agendamentos=[
+        uc, _, _, _, _, _ = _uc(agendamentos=[
             _ag('concluido', 120),
             _ag('agendado', 80),
         ])
@@ -62,14 +64,14 @@ class TestObterDashboard:
         agendamentos = [
             _ag('agendado', 100, inicio=f'2026-07-16 {h:02d}:00') for h in range(9, 16)
         ]
-        uc, _, _, _, _ = _uc(agendamentos=agendamentos)
+        uc, _, _, _, _, _ = _uc(agendamentos=agendamentos)
         resultado = uc.executar(hoje=date(2026, 7, 16))
         assert len(resultado['proximos_atendimentos']) == 5
         assert resultado['proximos_atendimentos'][0].data_hora_inicio == '2026-07-16 09:00'
 
     def test_aniversariantes_consulta_mes_e_dia_de_hoje(self):
         aniversariante = Paciente(id=1, nome='João', data_nascimento='1990-07-16')
-        uc, _, pac_repo, _, _ = _uc(aniversariantes=[aniversariante])
+        uc, _, pac_repo, _, _, _ = _uc(aniversariantes=[aniversariante])
         resultado = uc.executar(hoje=date(2026, 7, 16))
         pac_repo.listar_aniversariantes_do_dia.assert_called_once_with(7, 16)
         assert resultado['aniversariantes'] == [aniversariante]
@@ -83,7 +85,7 @@ class TestObterDashboard:
             id=2, paciente_id=1, profissional_id=1, procedimento_id=1,
             intervalo_dias=30, proxima_data='2026-08-20',
         )
-        uc, _, _, _, _ = _uc(planos=[plano_perto, plano_longe])
+        uc, _, _, _, _, _ = _uc(planos=[plano_perto, plano_longe])
         resultado = uc.executar(hoje=date(2026, 7, 16))
         assert resultado['recorrentes_vencendo'] == [plano_perto]
 
@@ -93,6 +95,17 @@ class TestObterDashboard:
             TarefaRetorno(id=1, agendamento_id=1, paciente_id=1, data_sugerida='2026-07-20'),
             TarefaRetorno(id=2, agendamento_id=2, paciente_id=2, data_sugerida='2026-07-22'),
         ]
-        uc, _, _, _, _ = _uc(tarefas_retorno=tarefas)
+        uc, _, _, _, _, _ = _uc(tarefas_retorno=tarefas)
         resultado = uc.executar(hoje=date(2026, 7, 16))
         assert resultado['retornos_pendentes'] == 2
+
+    def test_total_a_receber_e_atrasado(self):
+        from app.domain.entities.pagamento import Pagamento
+        pagamentos = [
+            Pagamento(id=1, paciente_id=1, valor=100.0, data_vencimento='2026-07-10'),  # atrasado
+            Pagamento(id=2, paciente_id=1, valor=200.0, data_vencimento='2026-07-20'),  # no prazo
+        ]
+        uc, _, _, _, _, _ = _uc(pagamentos_pendentes=pagamentos)
+        resultado = uc.executar(hoje=date(2026, 7, 16))
+        assert resultado['total_a_receber'] == 300.0
+        assert resultado['total_atrasado'] == 100.0

@@ -317,6 +317,43 @@ class TestPacientes:
         editar_reativado = admin_client.get(f'/pacientes/editar/{pac_id}')
         assert 'Ativo' in editar_reativado.data.decode()
 
+    def test_criar_pausar_e_reativar_mensalidade(self, admin_client, app):
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Mensalidade')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Mensalidade'"
+            ).fetchone()['id']
+
+        criar = admin_client.post(f'/pacientes/{pac_id}/mensalidades', data={
+            'valor': '199.90',
+            'dia_vencimento': '5',
+            'observacoes': 'Plano ortodôntico',
+        }, follow_redirects=False)
+        assert criar.status_code == 302
+
+        editar = admin_client.get(f'/pacientes/editar/{pac_id}')
+        assert 'vence todo dia 5' in editar.data.decode()
+        assert 'Ativa' in editar.data.decode()
+
+        with app.app_context():
+            from app.infrastructure.container import mensalidade_repo
+            mensalidade_id = mensalidade_repo().listar_por_paciente(pac_id)[0].id
+
+        pausar = admin_client.post(
+            f'/pacientes/{pac_id}/mensalidades/{mensalidade_id}/pausar', follow_redirects=False
+        )
+        assert pausar.status_code == 302
+        assert 'Pausada' in admin_client.get(f'/pacientes/editar/{pac_id}').data.decode()
+
+        reativar = admin_client.post(
+            f'/pacientes/{pac_id}/mensalidades/{mensalidade_id}/reativar', follow_redirects=False
+        )
+        assert reativar.status_code == 302
+        assert 'Ativa' in admin_client.get(f'/pacientes/editar/{pac_id}').data.decode()
+
 
 class TestRelatorios:
     def test_faltas_200(self, admin_client):
@@ -475,3 +512,79 @@ class TestRetornos:
             from app.infrastructure.container import tarefa_retorno_repo
             tarefa = tarefa_retorno_repo().buscar_por_agendamento(ids['agendamento_id'])
         assert tarefa is None
+
+
+class TestFinanceiro:
+    def test_index_200(self, admin_client):
+        assert admin_client.get('/financeiro/').status_code == 200
+
+    def test_sem_login_redireciona(self, client):
+        r = client.get('/financeiro/', follow_redirects=False)
+        assert r.status_code == 302
+        assert '/login' in r.headers['Location']
+
+    def test_concluir_atendimento_gera_pagamento_e_permite_registrar(self, admin_client, app):
+        # O procedimento seed 'Consulta' tem preco_base definido
+        ids = _criar_agendamento(app, status='em_atendimento')
+
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+
+        listagem = admin_client.get('/financeiro/')
+        assert 'Paciente Teste' in listagem.data.decode()
+
+        with app.app_context():
+            from app.infrastructure.container import pagamento_repo
+            pagamento = pagamento_repo().buscar_por_agendamento(ids['agendamento_id'])
+        assert pagamento is not None
+        assert pagamento.status == 'pendente'
+
+        pagar = admin_client.post(
+            f'/financeiro/{pagamento.id}/pagar',
+            data={'forma_pagamento': 'pix', 'observacoes': 'Pago via pix'},
+            follow_redirects=False,
+        )
+        assert pagar.status_code == 302
+
+        with app.app_context():
+            from app.infrastructure.container import pagamento_repo
+            pagamento_atualizado = pagamento_repo().buscar_por_id(pagamento.id)
+        assert pagamento_atualizado.status == 'pago'
+        assert pagamento_atualizado.forma_pagamento == 'pix'
+
+        listagem_apos = admin_client.get('/financeiro/')
+        assert 'Paciente Teste' not in listagem_apos.data.decode()
+
+    def test_pagar_rejeita_forma_de_pagamento_invalida(self, admin_client, app):
+        ids = _criar_agendamento(app, status='em_atendimento')
+        admin_client.post(f"/agenda/status/{ids['agendamento_id']}", data={'status': 'concluido'})
+
+        with app.app_context():
+            from app.infrastructure.container import pagamento_repo
+            pagamento = pagamento_repo().buscar_por_agendamento(ids['agendamento_id'])
+
+        r = admin_client.post(
+            f'/financeiro/{pagamento.id}/pagar',
+            data={'forma_pagamento': 'boleto-invalido'},
+            follow_redirects=True,
+        )
+        assert r.status_code == 200
+        assert 'Selecione uma forma de pagamento válida' in r.data.decode()
+
+    def test_gera_cobranca_de_mensalidade_ao_abrir_financeiro(self, admin_client, app):
+        with app.app_context():
+            from app.infrastructure.db.connection import get_db
+            db = get_db()
+            db.execute("INSERT INTO pacientes (nome) VALUES ('Paciente Mensal')")
+            db.commit()
+            pac_id = db.execute(
+                "SELECT id FROM pacientes WHERE nome='Paciente Mensal'"
+            ).fetchone()['id']
+            db.execute(
+                "INSERT INTO mensalidades (paciente_id, valor, dia_vencimento) VALUES (?,?,?)",
+                (pac_id, 199.90, 10)
+            )
+            db.commit()
+
+        listagem = admin_client.get('/financeiro/')
+        assert 'Paciente Mensal' in listagem.data.decode()
+        assert 'Mensalidade' in listagem.data.decode()

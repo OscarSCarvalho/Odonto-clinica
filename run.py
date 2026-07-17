@@ -11,6 +11,7 @@ from app.interfaces.configuracoes.routes import configuracoes_bp
 from app.interfaces.relatorios.routes import relatorios_bp
 from app.interfaces.recorrentes.routes import recorrentes_bp
 from app.interfaces.retornos.routes import retornos_bp
+from app.interfaces.financeiro.routes import financeiro_bp
 from app.interfaces.publico.routes import publico_bp
 
 
@@ -33,6 +34,7 @@ def create_app(config=None):
     app.register_blueprint(relatorios_bp)
     app.register_blueprint(recorrentes_bp)
     app.register_blueprint(retornos_bp)
+    app.register_blueprint(financeiro_bp)
     app.register_blueprint(publico_bp)
 
     with app.app_context():
