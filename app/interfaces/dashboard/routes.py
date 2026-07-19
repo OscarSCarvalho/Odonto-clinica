@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 from app.interfaces.auth.decorators import requer_login
-from app.infrastructure.container import obter_dashboard_uc, gerar_cobrancas_mensalidades_uc, orcamento_repo
+from app.infrastructure.container import gerar_cobrancas_mensalidades_uc, orcamento_repo
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
