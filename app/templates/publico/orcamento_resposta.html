@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resposta ao Orçamento — OdontoClinica</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    body { background: var(--bg); }
+    .pub-header {
+      background: var(--gradient-primary, linear-gradient(135deg, #0d9488, #2563eb));
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem 1rem 1.25rem;
+    }
+    .pub-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: .3px; }
+    .pub-header h1 span { color: #5eead4; }
+    .pub-header p { font-size: .82rem; opacity: .75; margin-top: .2rem; }
+    .pub-body { max-width: 480px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .pub-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 2rem 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      text-align: center;
+    }
+    .pub-alert {
+      padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+      font-size: .875rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .pub-alert.aviso { background: #fef9e7; color: #d68910; border-left: 4px solid #f39c12; }
+    .pub-alert.erro  { background: #fdedec; color: #c0392b; border-left: 4px solid #e74c3c; }
+    .pub-alert.sucesso { background: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; }
+  </style>
+</head>
+<body>
+<header class="pub-header">
+  <h1>Odonto<span>Clinica</span></h1>
+  <p>Aprovação de Orçamento</p>
+</header>
+
+<div class="pub-body">
+  {% with msgs = get_flashed_messages(with_categories=True) %}
+    {% for cat, msg in msgs %}
+      <div class="pub-alert {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="pub-card">
+    {% if orcamento and orcamento.status == 'aprovado' %}
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;color:#fff">✓</div>
+      <h2 style="font-size:1.2rem;margin-bottom:.5rem;color:var(--success)">Orçamento Aprovado!</h2>
+      <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1.5rem">
+        Recebemos sua aprovação. Nossa equipe entrará em contato em breve para agendar seus procedimentos.
+      </p>
+    {% elif orcamento and orcamento.status == 'recusado' %}
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--warning);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;color:#fff">ℹ</div>
+      <h2 style="font-size:1.2rem;margin-bottom:.5rem">Orçamento Recusado</h2>
+      <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1.5rem">
+        Entendemos sua decisão. Se mudar de ideia ou precisar de esclarecimentos, entre em contato conosco.
+      </p>
+    {% else %}
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;color:#fff">📋</div>
+      <h2 style="font-size:1.2rem;margin-bottom:.5rem">Resposta registrada</h2>
+      <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1.5rem">
+        Obrigado pelo retorno. Nossa equipe analisará sua resposta.
+      </p>
+    {% endif %}
+
+    <p style="font-size:.8rem;color:var(--text-muted)">
+      OdontoClinica — Sistema de Gestão
+    </p>
+  </div>
+</div>
+</body>
+</html>

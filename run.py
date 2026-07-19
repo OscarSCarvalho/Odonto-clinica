@@ -13,6 +13,7 @@ from app.interfaces.recorrentes.routes import recorrentes_bp
 from app.interfaces.retornos.routes import retornos_bp
 from app.interfaces.financeiro.routes import financeiro_bp
 from app.interfaces.publico.routes import publico_bp
+from app.interfaces.orcamentos.routes import orcamentos_bp
 
 
 def create_app(config=None):
@@ -36,6 +37,7 @@ def create_app(config=None):
     app.register_blueprint(retornos_bp)
     app.register_blueprint(financeiro_bp)
     app.register_blueprint(publico_bp)
+    app.register_blueprint(orcamentos_bp)
 
     with app.app_context():
         init_db()

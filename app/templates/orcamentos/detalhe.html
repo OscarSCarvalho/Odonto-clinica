@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% block title %}Orçamento #{{ orcamento.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Orçamento #{{ orcamento.id }}</h1>
+    <div class="page-subtitle">
+      {% if orcamento.status == 'rascunho' %}
+        <span class="badge" style="background:#6b7280;color:#fff">Rascunho</span>
+      {% elif orcamento.status == 'enviado' %}
+        <span class="badge badge-agendado">Enviado</span>
+      {% elif orcamento.status == 'aprovado' %}
+        <span class="badge badge-concluido">Aprovado</span>
+      {% elif orcamento.status == 'recusado' %}
+        <span class="badge badge-cancelado">Recusado</span>
+      {% elif orcamento.status == 'expirado' %}
+        <span class="badge badge-falta">Expirado</span>
+      {% endif %}
+    </div>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <a href="{{ url_for('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
+    {% if orcamento.status == 'rascunho' %}
+      <form method="post" action="{{ url_for('orcamentos.enviar', id=orcamento.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-primary">Enviar ao Paciente</button>
+      </form>
+      <form method="post" action="{{ url_for('orcamentos.aprovar', id=orcamento.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-secondary" style="background:var(--success);color:#fff">Aprovar</button>
+      </form>
+      <form method="post" action="{{ url_for('orcamentos.recusar', id=orcamento.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Recusar este orçamento?')">Recusar</button>
+      </form>
+    {% elif orcamento.status == 'enviado' %}
+      <form method="post" action="{{ url_for('orcamentos.aprovar', id=orcamento.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-secondary" style="background:var(--success);color:#fff">Aprovar</button>
+      </form>
+      <form method="post" action="{{ url_for('orcamentos.recusar', id=orcamento.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Recusar este orçamento?')">Recusar</button>
+      </form>
+    {% elif orcamento.status == 'aprovado' %}
+      <a href="{{ url_for('orcamentos.converter', id=orcamento.id) }}" class="btn btn-primary">Converter em Agendamentos</a>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+  <div class="card">
+    <div style="font-weight:700;margin-bottom:.5rem;color:var(--text-muted);font-size:.85rem;text-transform:uppercase">Informações</div>
+    <table style="width:100%;font-size:.9rem">
+      <tr><td style="color:var(--text-muted);padding:.25rem 0">Paciente</td><td><strong>{{ orcamento.paciente_nome }}</strong></td></tr>
+      <tr><td style="color:var(--text-muted);padding:.25rem 0">Profissional</td><td>{{ orcamento.profissional_nome or '—' }}</td></tr>
+      <tr><td style="color:var(--text-muted);padding:.25rem 0">Validade</td><td>{{ orcamento.validade_dias }} dias</td></tr>
+      <tr><td style="color:var(--text-muted);padding:.25rem 0">Criado em</td><td>{{ orcamento.criado_em[:10] if orcamento.criado_em else '—' }}</td></tr>
+      {% if orcamento.observacoes %}
+      <tr><td style="color:var(--text-muted);padding:.25rem 0">Observações</td><td>{{ orcamento.observacoes }}</td></tr>
+      {% endif %}
+    </table>
+  </div>
+
+  {% if orcamento.status == 'rascunho' %}
+  <div class="card">
+    <div style="font-weight:700;margin-bottom:.75rem;color:var(--text-muted);font-size:.85rem;text-transform:uppercase">Editar Orçamento</div>
+    <form method="post" action="{{ url_for('orcamentos.editar', id=orcamento.id) }}">
+      <div class="form-group">
+        <label style="font-size:.85rem">Desconto Global</label>
+        <div style="display:flex;gap:.5rem">
+          <input type="number" name="desconto_global" class="form-control" value="{{ orcamento.desconto_global }}" step="0.01" min="0">
+          <select name="desconto_tipo" class="form-control" style="width:140px">
+            <option value="percentual" {% if orcamento.desconto_tipo == 'percentual' %}selected{% endif %}>%</option>
+            <option value="valor" {% if orcamento.desconto_tipo == 'valor' %}selected{% endif %}>R$</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="font-size:.85rem">Validade (dias)</label>
+        <input type="number" name="validade_dias" class="form-control" value="{{ orcamento.validade_dias }}" min="1">
+      </div>
+      <div class="form-group">
+        <label style="font-size:.85rem">Observações</label>
+        <textarea name="observacoes" class="form-control" rows="2">{{ orcamento.observacoes or '' }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Salvar</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="card" style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:120px">
+    <div style="font-size:2.5rem;margin-bottom:.5rem">
+      {% if orcamento.status == 'aprovado' %}✅{% elif orcamento.status == 'recusado' %}❌{% else %}📨{% endif %}
+    </div>
+    <div style="font-weight:600;color:var(--text-muted)">Orçamento {{ orcamento.status }}</div>
+    {% if orcamento.token_aprovacao %}
+    <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">Token: {{ orcamento.token_aprovacao[:8] }}...</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <div style="font-weight:700;margin-bottom:.75rem;color:var(--text-muted);font-size:.85rem;text-transform:uppercase">Itens do Orçamento</div>
+  {% if orcamento.itens %}
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Procedimento</th>
+          <th>Qtd</th>
+          <th>Vlr Unitário</th>
+          <th>Desconto</th>
+          <th>Subtotal</th>
+          {% if orcamento.status == 'rascunho' %}<th>Remover</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in orcamento.itens %}
+        <tr>
+          <td>{{ item.procedimento_nome or '—' }}</td>
+          <td>{{ item.quantidade }}</td>
+          <td>R$ {{ '%.2f'|format(item.valor_unitario) }}</td>
+          <td>
+            {% if item.desconto_item > 0 %}
+              {{ '%.2f'|format(item.desconto_item) }}{{ '%' if item.desconto_tipo == 'percentual' else ' R$' }}
+            {% else %}—{% endif %}
+          </td>
+          <td><strong>R$ {{ '%.2f'|format(item.subtotal) }}</strong></td>
+          {% if orcamento.status == 'rascunho' %}
+          <td>
+            <form method="post" action="{{ url_for('orcamentos.item_remover', id=orcamento.id, item_id=item.id) }}" style="display:inline">
+              <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Remover este item?')">✕</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="page-subtitle">Nenhum item adicionado ainda.</p>
+  {% endif %}
+
+  <div style="border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem;text-align:right">
+    <div style="font-size:.9rem;color:var(--text-muted)">Total Bruto: <strong>R$ {{ '%.2f'|format(orcamento.total_bruto) }}</strong></div>
+    {% if orcamento.desconto_global > 0 %}
+    <div style="font-size:.9rem;color:var(--danger)">
+      Desconto: {{ '%.2f'|format(orcamento.desconto_global) }}{{ '%' if orcamento.desconto_tipo == 'percentual' else ' R$' }}
+    </div>
+    {% endif %}
+    <div style="font-size:1.25rem;font-weight:700;color:var(--primary);margin-top:.25rem">
+      Total Líquido: R$ {{ '%.2f'|format(orcamento.total_liquido) }}
+    </div>
+  </div>
+</div>
+
+{% if orcamento.status == 'rascunho' %}
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+    <div style="font-weight:700;color:var(--text-muted);font-size:.85rem;text-transform:uppercase">Adicionar Procedimentos</div>
+    <span id="sel-count" style="font-size:.8rem;color:var(--accent);font-weight:600;display:none">0 selecionado(s)</span>
+  </div>
+
+  <form method="post" action="{{ url_for('orcamentos.item_add', id=orcamento.id) }}" id="form-add-itens">
+    {% set sem_preco = procedimentos | selectattr('preco_base', 'none') | list %}
+    {% if procedimentos %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-bottom:1rem">
+      {% for p in procedimentos %}
+        {% set tem_preco = p.preco_base and p.preco_base > 0 %}
+        {% if tem_preco %}
+        <label class="proc-card" for="proc-{{ p.id }}">
+          <input type="checkbox" id="proc-{{ p.id }}" name="procedimento_id" value="{{ p.id }}" class="proc-check" style="display:none">
+          <div class="proc-card-inner">
+            <div style="display:flex;align-items:flex-start;gap:.5rem">
+              <span class="proc-check-icon">☐</span>
+              <div style="flex:1;min-width:0">
+                <div class="proc-nome">{{ p.nome }}</div>
+                <div class="proc-preco">R$ {{ '%.2f'|format(p.preco_base) }}</div>
+              </div>
+            </div>
+            <div class="proc-qty-row" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)">
+              <label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:.25rem">Quantidade</label>
+              <input type="number" name="quantidade_{{ p.id }}" value="1" min="1"
+                     class="form-control" style="width:80px;font-size:.85rem;padding:.25rem .4rem"
+                     onclick="event.stopPropagation()">
+            </div>
+          </div>
+        </label>
+        {% else %}
+        <div class="proc-card-disabled" title="Cadastre o preço deste procedimento para usá-lo em orçamentos">
+          <div class="proc-card-inner" style="opacity:.5;cursor:not-allowed;background:#f9fafb">
+            <div style="display:flex;align-items:flex-start;gap:.5rem">
+              <span style="font-size:1.1rem;color:#d1d5db">☐</span>
+              <div style="flex:1;min-width:0">
+                <div class="proc-nome" style="color:var(--text-muted)">{{ p.nome }}</div>
+                <div style="font-size:.75rem;color:var(--danger);margin-top:.15rem;font-weight:600">⚠ Sem preço</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% set qtd_sem_preco = procedimentos | rejectattr('preco_base') | list | length %}
+    {% if qtd_sem_preco > 0 %}
+    <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem">
+      ⚠ {{ qtd_sem_preco }} procedimento(s) sem preço — configure em
+      <a href="{{ url_for('procedimentos.index') }}" style="color:var(--accent)">Procedimentos</a>.
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary" id="btn-add-sel" disabled
+            style="opacity:.5;cursor:not-allowed">
+      Adicionar Selecionados
+    </button>
+
+    {% else %}
+    <p style="color:var(--text-muted);font-size:.875rem">Nenhum procedimento cadastrado. <a href="{{ url_for('procedimentos.index') }}">Cadastrar procedimento</a></p>
+    {% endif %}
+  </form>
+</div>
+
+<style>
+  .proc-card {
+    cursor: pointer;
+    display: block;
+  }
+  .proc-card-inner {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: .75rem;
+    background: #fff;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+    user-select: none;
+  }
+  .proc-card:hover .proc-card-inner {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(37,99,235,.1);
+  }
+  .proc-card.selected .proc-card-inner {
+    border-color: var(--accent);
+    background: #eff6ff;
+    box-shadow: 0 2px 10px rgba(37,99,235,.15);
+  }
+  .proc-check-icon {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: .05rem;
+  }
+  .proc-card.selected .proc-check-icon {
+    color: var(--accent);
+  }
+  .proc-nome {
+    font-weight: 600;
+    font-size: .875rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .proc-preco {
+    font-size: .8rem;
+    color: var(--text-muted);
+    margin-top: .15rem;
+  }
+  .proc-card.selected .proc-preco {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
+
+<script>
+(function () {
+  const cards   = document.querySelectorAll('.proc-card');
+  const btnAdd  = document.getElementById('btn-add-sel');
+  const counter = document.getElementById('sel-count');
+
+  function updateState() {
+    const checked = document.querySelectorAll('.proc-check:checked').length;
+    btnAdd.disabled  = checked === 0;
+    btnAdd.style.opacity = checked === 0 ? '.5' : '1';
+    btnAdd.style.cursor  = checked === 0 ? 'not-allowed' : 'pointer';
+    counter.style.display = checked > 0 ? 'inline' : 'none';
+    counter.textContent   = checked + ' selecionado(s)';
+  }
+
+  cards.forEach(function (card) {
+    card.addEventListener('click', function (e) {
+      if (e.target.tagName === 'INPUT' && e.target.type === 'number') return;
+      const chk = card.querySelector('.proc-check');
+      const qtyRow = card.querySelector('.proc-qty-row');
+      const icon   = card.querySelector('.proc-check-icon');
+
+      chk.checked = !chk.checked;
+      if (chk.checked) {
+        card.classList.add('selected');
+        icon.textContent = '☑';
+        if (qtyRow) qtyRow.style.display = 'block';
+      } else {
+        card.classList.remove('selected');
+        icon.textContent = '☐';
+        if (qtyRow) qtyRow.style.display = 'none';
+      }
+      updateState();
+    });
+  });
+
+  updateState();
+})();
+</script>
+{% endif %}
+{% endblock %}

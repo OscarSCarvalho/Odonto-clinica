@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Novo Orçamento{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Novo Orçamento</h1>
+  <a href="{{ url_for('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
+</div>
+
+<div class="card" style="max-width:600px">
+  <form method="post">
+    <div class="form-group">
+      <label>Paciente <span style="color:var(--danger)">*</span></label>
+      <select name="paciente_id" class="form-control" required>
+        <option value="">Selecione um paciente</option>
+        {% for p in pacientes %}
+        <option value="{{ p.id }}">{{ p.nome }}{% if p.telefone %} — {{ p.telefone }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Profissional responsável</label>
+      <select name="profissional_id" class="form-control">
+        <option value="">Nenhum (opcional)</option>
+        {% for pr in profissionais %}
+        <option value="{{ pr.id }}">{{ pr.nome }}{% if pr.especialidade %} — {{ pr.especialidade }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Validade (dias)</label>
+      <input type="number" name="validade_dias" class="form-control" value="30" min="1" max="365">
+    </div>
+
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea name="observacoes" class="form-control" rows="3" placeholder="Observações internas sobre o orçamento..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:.5rem;margin-top:1rem">
+      <button type="submit" class="btn btn-primary">Criar Orçamento</button>
+      <a href="{{ url_for('orcamentos.index') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

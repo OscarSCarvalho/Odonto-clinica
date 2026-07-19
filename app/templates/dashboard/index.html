@@ -34,6 +34,14 @@
     <div class="kpi-label">A receber</div>
     <div class="kpi-value">R$ {{ '%.2f'|format(dados.total_a_receber) }}</div>
   </div>
+  <div class="kpi-card kpi-warning">
+    <div class="kpi-label">Orçamentos Pendentes</div>
+    <div class="kpi-value">{{ dados.get('orcamentos_pendentes', 0) }}</div>
+  </div>
+  <div class="kpi-card kpi-teal">
+    <div class="kpi-label">Aprovados no Mês</div>
+    <div class="kpi-value">R$ {{ '%.2f'|format(dados.get('orcamentos_aprovados_mes', 0)) }}</div>
+  </div>
 </div>
 
 <div class="dashboard-cols">

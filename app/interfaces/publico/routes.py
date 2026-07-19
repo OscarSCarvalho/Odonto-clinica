@@ -1,9 +1,10 @@
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from app.domain.exceptions import ConflitodeHorarioError, HorarioForaDoExpedienteError
+from app.domain.exceptions import ConflitodeHorarioError, HorarioForaDoExpedienteError, DadosInvalidosError
 from app.infrastructure.container import (
     profissional_repo, procedimento_repo, agendamento_repo,
     listar_slots_uc, autoagendar_paciente_uc,
+    aprovar_orcamento_uc, recusar_orcamento_uc, orcamento_repo,
 )
 
 publico_bp = Blueprint('publico', __name__, url_prefix='/agendar')
@@ -186,6 +187,43 @@ def sucesso(id):
                            dia_semana=dia_semana,
                            hora_fmt=hora_fmt,
                            google_cal_url=google_cal_url)
+
+
+# ── Orçamento público ────────────────────────────────────────────────────────
+
+@publico_bp.route('/orcamento/<token>')
+def orcamento_aprovacao(token):
+    orcamento = orcamento_repo().buscar_por_token(token)
+    if not orcamento:
+        flash('Orçamento não encontrado ou link inválido.', 'erro')
+        return redirect(url_for('publico.step1_profissional'))
+    return render_template('publico/orcamento_aprovacao.html', orcamento=orcamento)
+
+
+@publico_bp.route('/orcamento/<token>/aprovar', methods=['POST'])
+def orcamento_aprovar(token):
+    try:
+        aprovar_orcamento_uc().executar(token=token)
+        flash('Orçamento aprovado com sucesso! Entraremos em contato para agendar.', 'sucesso')
+    except DadosInvalidosError as e:
+        flash(str(e), 'erro')
+    return redirect(url_for('publico.orcamento_resposta', token=token))
+
+
+@publico_bp.route('/orcamento/<token>/recusar', methods=['POST'])
+def orcamento_recusar(token):
+    try:
+        recusar_orcamento_uc().executar(token=token)
+        flash('Orçamento recusado. Obrigado pelo retorno.', 'aviso')
+    except DadosInvalidosError as e:
+        flash(str(e), 'erro')
+    return redirect(url_for('publico.orcamento_resposta', token=token))
+
+
+@publico_bp.route('/orcamento/<token>/resposta')
+def orcamento_resposta(token):
+    orcamento = orcamento_repo().buscar_por_token(token)
+    return render_template('publico/orcamento_resposta.html', orcamento=orcamento)
 
 
 def _google_calendar_url(ag, data_fmt) -> str:

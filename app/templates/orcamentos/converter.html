@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Converter Orçamento #{{ orcamento.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Converter Orçamento #{{ orcamento.id }} em Agendamentos</h1>
+  <a href="{{ url_for('orcamentos.detalhe', id=orcamento.id) }}" class="btn btn-secondary">Voltar</a>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <p style="color:var(--text-muted);font-size:.9rem">
+    Paciente: <strong>{{ orcamento.paciente_nome }}</strong> |
+    Total: <strong>R$ {{ '%.2f'|format(orcamento.total_liquido) }}</strong>
+  </p>
+  <p style="color:var(--text-muted);font-size:.85rem">
+    Preencha a data, horário e profissional para cada item do orçamento.
+  </p>
+</div>
+
+<form method="post">
+  {% for item in orcamento.itens %}
+  <div class="card" style="margin-bottom:1rem">
+    <div style="font-weight:700;margin-bottom:.75rem">
+      {{ loop.index }}. {{ item.procedimento_nome or 'Procedimento' }}
+      <span style="color:var(--text-muted);font-weight:400;font-size:.9rem">
+        — Qtd: {{ item.quantidade }} | Subtotal: R$ {{ '%.2f'|format(item.subtotal) }}
+      </span>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem">
+      <div class="form-group">
+        <label>Profissional</label>
+        <select name="profissional_id_{{ item.id }}" class="form-control" required>
+          <option value="">Selecione</option>
+          {% for pr in profissionais %}
+          <option value="{{ pr.id }}">{{ pr.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" name="data_{{ item.id }}" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Horário (HH:MM)</label>
+        <input type="time" name="hora_{{ item.id }}" class="form-control" required>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div style="display:flex;gap:.5rem;margin-top:1rem">
+    <button type="submit" class="btn btn-primary">Criar Agendamentos</button>
+    <a href="{{ url_for('orcamentos.detalhe', id=orcamento.id) }}" class="btn btn-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

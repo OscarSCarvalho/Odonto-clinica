@@ -4,6 +4,7 @@ from app.domain.repositories.paciente_repo import PacienteRepository
 from app.domain.repositories.plano_recorrente_repo import PlanoRecorrenteRepository
 from app.domain.repositories.tarefa_retorno_repo import TarefaRetornoRepository
 from app.domain.repositories.pagamento_repo import PagamentoRepository
+from app.domain.repositories.orcamento_repo import OrcamentoRepository
 
 
 class ObterDashboard:
@@ -15,12 +16,14 @@ class ObterDashboard:
         plano_recorrente_repo: PlanoRecorrenteRepository,
         tarefa_retorno_repo: TarefaRetornoRepository,
         pagamento_repo: PagamentoRepository,
+        orcamento_repo: OrcamentoRepository = None,
     ):
         self._agendamentos = agendamento_repo
         self._pacientes = paciente_repo
         self._planos = plano_recorrente_repo
         self._tarefas_retorno = tarefa_retorno_repo
         self._pagamentos = pagamento_repo
+        self._orcamentos = orcamento_repo
 
     def executar(self, hoje: date = None) -> dict:
         hoje = hoje or date.today()
@@ -57,6 +60,17 @@ class ObterDashboard:
         total_a_receber = sum(p.valor for p in pendentes)
         total_atrasado = sum(p.valor for p in pendentes if date.fromisoformat(p.data_vencimento) < hoje)
 
+        orcamentos_pendentes = 0
+        orcamentos_aprovados_mes = 0.0
+        if self._orcamentos:
+            todos_orcamentos = self._orcamentos.listar_todos()
+            mes_atual = hoje.strftime('%Y-%m')
+            for o in todos_orcamentos:
+                if o.status in ('rascunho', 'enviado'):
+                    orcamentos_pendentes += 1
+                if o.status == 'aprovado' and o.criado_em and o.criado_em[:7] == mes_atual:
+                    orcamentos_aprovados_mes += o.total_liquido
+
         return {
             'total_hoje': len(agendamentos_hoje),
             'contagem_status': contagem_status,
@@ -68,4 +82,6 @@ class ObterDashboard:
             'retornos_pendentes': len(self._tarefas_retorno.listar_pendentes()),
             'total_a_receber': total_a_receber,
             'total_atrasado': total_atrasado,
+            'orcamentos_pendentes': orcamentos_pendentes,
+            'orcamentos_aprovados_mes': orcamentos_aprovados_mes,
         }

@@ -5,51 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}OdontoClinica{% endblock %} — Sistema de Gestão</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-  <!-- FullCalendar -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
   {% block head %}{% endblock %}
 </head>
 <body>
 
-<nav class="navbar">
-  <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+<!-- ── Topbar ── -->
+<header class="topbar">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <a class="topbar-brand" href="{{ url_for('dashboard.index') }}">
     Odonto<span>Clinica</span>
   </a>
-
-  <ul class="navbar-nav">
-    <li><a href="{{ url_for('dashboard.index') }}"
-           class="{{ 'active' if request.blueprint == 'dashboard' else '' }}">Dashboard</a></li>
-    <li><a href="{{ url_for('agenda.index') }}"
-           class="{{ 'active' if request.blueprint == 'agenda' else '' }}">Agenda</a></li>
-    {% if session.get('perfil') in ('admin', 'recepcao') %}
-    <li><a href="{{ url_for('pacientes.index') }}"
-           class="{{ 'active' if request.blueprint == 'pacientes' else '' }}">Pacientes</a></li>
-    <li><a href="{{ url_for('recorrentes.index') }}"
-           class="{{ 'active' if request.blueprint == 'recorrentes' else '' }}">Recorrentes</a></li>
-    <li><a href="{{ url_for('retornos.index') }}"
-           class="{{ 'active' if request.blueprint == 'retornos' else '' }}">Retornos</a></li>
-    <li><a href="{{ url_for('financeiro.index') }}"
-           class="{{ 'active' if request.blueprint == 'financeiro' else '' }}">Financeiro</a></li>
-    <li><a href="{{ url_for('relatorios.faltas') }}"
-           class="{{ 'active' if request.blueprint == 'relatorios' else '' }}">Relatórios</a></li>
-    {% endif %}
-    {% if session.get('perfil') == 'admin' %}
-    <li><a href="{{ url_for('profissionais.index') }}"
-           class="{{ 'active' if request.blueprint == 'profissionais' else '' }}">Profissionais</a></li>
-    <li><a href="{{ url_for('procedimentos.index') }}"
-           class="{{ 'active' if request.blueprint == 'procedimentos' else '' }}">Procedimentos</a></li>
-    <li><a href="{{ url_for('configuracoes.lembretes') }}"
-           class="{{ 'active' if request.blueprint == 'configuracoes' else '' }}">Configurações</a></li>
-    {% endif %}
-  </ul>
-
-  <div class="navbar-user">
-    <span>{{ session.get('nome', '') }}</span>
-    <a href="{{ url_for('auth.logout') }}">Sair</a>
+  <div class="topbar-user">
+    <span class="topbar-user-name">{{ session.get('nome', '') }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="topbar-logout">Sair</a>
   </div>
-</nav>
+</header>
 
-<div class="main-wrapper">
+<!-- ── Sidebar ── -->
+<aside class="sidebar" id="sidebar">
+
+  <nav class="sidebar-nav">
+
+    <!-- Principal -->
+    <div class="sidebar-label">Principal</div>
+
+    <a href="{{ url_for('dashboard.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'dashboard' else '' }}">
+      <span class="sidebar-icon">⊞</span> Dashboard
+    </a>
+
+    <a href="{{ url_for('agenda.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'agenda' else '' }}">
+      <span class="sidebar-icon">📅</span> Agenda
+    </a>
+
+    {% if session.get('perfil') in ('admin', 'recepcao') %}
+
+    <!-- Atendimento -->
+    <div class="sidebar-label" style="margin-top:.5rem">Atendimento</div>
+
+    <a href="{{ url_for('pacientes.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'pacientes' else '' }}">
+      <span class="sidebar-icon">👥</span> Pacientes
+    </a>
+
+    <a href="{{ url_for('orcamentos.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'orcamentos' else '' }}">
+      <span class="sidebar-icon">📋</span> Orçamentos
+    </a>
+
+    <a href="{{ url_for('recorrentes.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'recorrentes' else '' }}">
+      <span class="sidebar-icon">🔄</span> Recorrentes
+    </a>
+
+    <a href="{{ url_for('retornos.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'retornos' else '' }}">
+      <span class="sidebar-icon">↩</span> Retornos
+    </a>
+
+    <!-- Financeiro -->
+    <div class="sidebar-label" style="margin-top:.5rem">Financeiro</div>
+
+    <a href="{{ url_for('financeiro.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'financeiro' else '' }}">
+      <span class="sidebar-icon">💰</span> Contas a Receber
+    </a>
+
+    <!-- Relatórios -->
+    <div class="sidebar-label" style="margin-top:.5rem">Relatórios</div>
+
+    <a href="{{ url_for('relatorios.faltas') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'relatorios' else '' }}">
+      <span class="sidebar-icon">📊</span> Relatórios
+    </a>
+
+    {% endif %}
+
+    {% if session.get('perfil') == 'admin' %}
+
+    <!-- Administração -->
+    <div class="sidebar-label" style="margin-top:.5rem">Administração</div>
+
+    <a href="{{ url_for('profissionais.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'profissionais' else '' }}">
+      <span class="sidebar-icon">👨‍⚕️</span> Profissionais
+    </a>
+
+    <a href="{{ url_for('procedimentos.index') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'procedimentos' else '' }}">
+      <span class="sidebar-icon">🦷</span> Procedimentos
+    </a>
+
+    <a href="{{ url_for('configuracoes.lembretes') }}"
+       class="sidebar-link {{ 'active' if request.blueprint == 'configuracoes' else '' }}">
+      <span class="sidebar-icon">⚙</span> Configurações
+    </a>
+
+    {% endif %}
+
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-footer-role">
+      {% if session.get('perfil') == 'admin' %}Administrador
+      {% elif session.get('perfil') == 'recepcao' %}Recepção
+      {% else %}Profissional{% endif %}
+    </div>
+  </div>
+</aside>
+
+<!-- ── Overlay mobile ── -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ── Conteúdo ── -->
+<main class="main-wrapper">
   {% with messages = get_flashed_messages(with_categories=True) %}
     {% for categoria, msg in messages %}
       <div class="alert alert-{{ categoria }}">{{ msg }}</div>
@@ -57,10 +130,27 @@
   {% endwith %}
 
   {% block content %}{% endblock %}
-</div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
+
+<script>
+(function () {
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebarOverlay');
+  const toggle   = document.getElementById('sidebarToggle');
+
+  function open()  { sidebar.classList.add('open');  overlay.classList.add('visible'); }
+  function close() { sidebar.classList.remove('open'); overlay.classList.remove('visible'); }
+
+  toggle.addEventListener('click', function () {
+    sidebar.classList.contains('open') ? close() : open();
+  });
+  overlay.addEventListener('click', close);
+})();
+</script>
+
 {% block scripts %}{% endblock %}
 </body>
 </html>

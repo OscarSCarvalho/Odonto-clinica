@@ -31,6 +31,17 @@ from app.application.relatorio_desempenho import RelatorioDesempenho
 from app.application.criar_pagamento_atendimento import CriarPagamentoAtendimento
 from app.application.gerar_cobrancas_mensalidades import GerarCobrancasMensalidades
 from app.application.listar_contas_receber import ListarContasReceber
+from app.infrastructure.db.repositories.sqlite_orcamento_repo import SqliteOrcamentoRepository
+from app.application.criar_orcamento import CriarOrcamento
+from app.application.obter_orcamento import ObterOrcamento
+from app.application.listar_orcamentos import ListarOrcamentos
+from app.application.adicionar_item_orcamento import AdicionarItemOrcamento
+from app.application.remover_item_orcamento import RemoverItemOrcamento
+from app.application.atualizar_orcamento import AtualizarOrcamento
+from app.application.enviar_orcamento import EnviarOrcamento
+from app.application.aprovar_orcamento import AprovarOrcamento
+from app.application.recusar_orcamento import RecusarOrcamento
+from app.application.converter_orcamento import ConverterOrcamentoEmAgendamentos
 
 
 def profissional_repo():
@@ -169,3 +180,47 @@ def gerar_cobrancas_mensalidades_uc():
 
 def listar_contas_receber_uc():
     return ListarContasReceber(pagamento_repo())
+
+
+def orcamento_repo():
+    return SqliteOrcamentoRepository(get_db())
+
+
+def criar_orcamento_uc():
+    return CriarOrcamento(orcamento_repo(), paciente_repo(), profissional_repo())
+
+
+def obter_orcamento_uc():
+    return ObterOrcamento(orcamento_repo())
+
+
+def listar_orcamentos_uc():
+    return ListarOrcamentos(orcamento_repo())
+
+
+def adicionar_item_orcamento_uc():
+    return AdicionarItemOrcamento(orcamento_repo(), procedimento_repo())
+
+
+def remover_item_orcamento_uc():
+    return RemoverItemOrcamento(orcamento_repo())
+
+
+def atualizar_orcamento_uc():
+    return AtualizarOrcamento(orcamento_repo(), profissional_repo())
+
+
+def enviar_orcamento_uc():
+    return EnviarOrcamento(orcamento_repo(), paciente_repo(), _whatsapp_adapter(), _email_adapter())
+
+
+def aprovar_orcamento_uc():
+    return AprovarOrcamento(orcamento_repo())
+
+
+def recusar_orcamento_uc():
+    return RecusarOrcamento(orcamento_repo())
+
+
+def converter_orcamento_uc():
+    return ConverterOrcamentoEmAgendamentos(orcamento_repo(), criar_agendamento_uc(), pagamento_repo())

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orçamento — OdontoClinica</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    body { background: var(--bg); }
+    .pub-header {
+      background: var(--gradient-primary, linear-gradient(135deg, #0d9488, #2563eb));
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem 1rem 1.25rem;
+    }
+    .pub-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: .3px; }
+    .pub-header h1 span { color: #5eead4; }
+    .pub-header p { font-size: .82rem; opacity: .75; margin-top: .2rem; }
+    .pub-body { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .pub-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .pub-alert {
+      padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+      font-size: .875rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .pub-alert.aviso { background: #fef9e7; color: #d68910; border-left: 4px solid #f39c12; }
+    .pub-alert.erro  { background: #fdedec; color: #c0392b; border-left: 4px solid #e74c3c; }
+    .pub-alert.sucesso { background: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; }
+    .resumo { background: var(--bg); border-radius: 8px; padding: .85rem 1rem; margin-bottom: 1.25rem; }
+    .resumo-row { display: flex; justify-content: space-between; font-size: .85rem; padding: .2rem 0; }
+    .resumo-row span:first-child { color: var(--text-muted); }
+    .resumo-row span:last-child  { font-weight: 600; }
+  </style>
+</head>
+<body>
+<header class="pub-header">
+  <h1>Odonto<span>Clinica</span></h1>
+  <p>Aprovação de Orçamento</p>
+</header>
+
+<div class="pub-body">
+  {% with msgs = get_flashed_messages(with_categories=True) %}
+    {% for cat, msg in msgs %}
+      <div class="pub-alert {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="pub-card">
+    <h2 style="font-size:1.1rem;margin-bottom:.25rem">Seu Orçamento</h2>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1.25rem">
+      Revise os itens abaixo e aprove ou recuse o orçamento.
+    </p>
+
+    <div class="resumo" style="margin-bottom:1rem">
+      <div class="resumo-row">
+        <span>Paciente</span>
+        <span>{{ orcamento.paciente_nome }}</span>
+      </div>
+      {% if orcamento.profissional_nome %}
+      <div class="resumo-row">
+        <span>Profissional</span>
+        <span>{{ orcamento.profissional_nome }}</span>
+      </div>
+      {% endif %}
+      <div class="resumo-row">
+        <span>Validade</span>
+        <span>{{ orcamento.validade_dias }} dias a partir da emissão</span>
+      </div>
+      {% if orcamento.observacoes %}
+      <div class="resumo-row">
+        <span>Observações</span>
+        <span>{{ orcamento.observacoes }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:.875rem;margin-bottom:1.25rem">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:.5rem .25rem;color:var(--text-muted)">Procedimento</th>
+          <th style="text-align:center;padding:.5rem .25rem;color:var(--text-muted)">Qtd</th>
+          <th style="text-align:right;padding:.5rem .25rem;color:var(--text-muted)">Vlr Unit.</th>
+          <th style="text-align:right;padding:.5rem .25rem;color:var(--text-muted)">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in orcamento.itens %}
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:.5rem .25rem">{{ item.procedimento_nome or '—' }}</td>
+          <td style="text-align:center;padding:.5rem .25rem">{{ item.quantidade }}</td>
+          <td style="text-align:right;padding:.5rem .25rem">R$ {{ '%.2f'|format(item.valor_unitario) }}</td>
+          <td style="text-align:right;padding:.5rem .25rem;font-weight:600">R$ {{ '%.2f'|format(item.subtotal) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align:right;padding:.75rem .25rem;font-size:.85rem;color:var(--text-muted)">Total Bruto:</td>
+          <td style="text-align:right;padding:.75rem .25rem;font-weight:600">R$ {{ '%.2f'|format(orcamento.total_bruto) }}</td>
+        </tr>
+        {% if orcamento.desconto_global > 0 %}
+        <tr>
+          <td colspan="3" style="text-align:right;padding:.25rem;font-size:.85rem;color:var(--danger)">
+            Desconto ({{ '%.2f'|format(orcamento.desconto_global) }}{{ '%' if orcamento.desconto_tipo == 'percentual' else ' R$' }}):
+          </td>
+          <td style="text-align:right;padding:.25rem;color:var(--danger);font-weight:600">
+            - R$ {{ '%.2f'|format(orcamento.total_bruto - orcamento.total_liquido) }}
+          </td>
+        </tr>
+        {% endif %}
+        <tr style="border-top:2px solid var(--primary)">
+          <td colspan="3" style="text-align:right;padding:.75rem .25rem;font-weight:700;font-size:1rem;color:var(--primary)">Total:</td>
+          <td style="text-align:right;padding:.75rem .25rem;font-weight:700;font-size:1.1rem;color:var(--primary)">
+            R$ {{ '%.2f'|format(orcamento.total_liquido) }}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+
+    {% if orcamento.status in ('rascunho', 'enviado') %}
+    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+      <form method="post" action="{{ url_for('publico.orcamento_aprovar', token=orcamento.token_aprovacao) }}" style="flex:1">
+        <button type="submit" class="btn btn-primary" style="width:100%;background:var(--success);border-color:var(--success);font-size:1rem;padding:.75rem">
+          Aprovar Orçamento
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('publico.orcamento_recusar', token=orcamento.token_aprovacao) }}" style="flex:0 0 auto"
+            onsubmit="return confirm('Tem certeza que deseja recusar este orçamento?')">
+        <button type="submit" class="btn btn-secondary" style="color:var(--danger);border-color:var(--danger)">
+          Recusar
+        </button>
+      </form>
+    </div>
+    {% elif orcamento.status == 'aprovado' %}
+    <div class="pub-alert sucesso">Você já aprovou este orçamento. Em breve entraremos em contato.</div>
+    {% elif orcamento.status == 'recusado' %}
+    <div class="pub-alert aviso">Este orçamento foi recusado.</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

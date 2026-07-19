@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Orçamentos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Orçamentos</h1>
+  <a href="{{ url_for('orcamentos.novo') }}" class="btn btn-primary">+ Novo Orçamento</a>
+</div>
+
+<div class="card" style="margin-bottom:1rem;padding:.75rem 1rem">
+  <form method="get" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+    <label style="font-weight:600;font-size:.9rem">Filtrar por status:</label>
+    {% for s in ['rascunho','enviado','aprovado','recusado','expirado'] %}
+    <a href="{{ url_for('orcamentos.index', status=s) }}"
+       class="btn btn-secondary btn-sm"
+       style="{% if status_filtro == s %}outline:2px solid var(--primary);{% endif %}">
+      {{ s|capitalize }}
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('orcamentos.index') }}" class="btn btn-secondary btn-sm">Todos</a>
+  </form>
+</div>
+
+<div class="card">
+  {% if orcamentos %}
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th>Paciente</th>
+          <th>Profissional</th>
+          <th>Itens</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Data</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orcamentos %}
+        <tr>
+          <td><strong>#{{ o.id }}</strong></td>
+          <td>{{ o.paciente_nome }}</td>
+          <td>{{ o.profissional_nome or '—' }}</td>
+          <td>{{ o.itens|length }}</td>
+          <td>R$ {{ '%.2f'|format(o.total_liquido) }}</td>
+          <td>
+            {% if o.status == 'rascunho' %}
+              <span class="badge" style="background:#6b7280;color:#fff">Rascunho</span>
+            {% elif o.status == 'enviado' %}
+              <span class="badge badge-agendado">Enviado</span>
+            {% elif o.status == 'aprovado' %}
+              <span class="badge badge-concluido">Aprovado</span>
+            {% elif o.status == 'recusado' %}
+              <span class="badge badge-cancelado">Recusado</span>
+            {% elif o.status == 'expirado' %}
+              <span class="badge badge-falta">Expirado</span>
+            {% endif %}
+          </td>
+          <td>{{ o.criado_em[:10] if o.criado_em else '—' }}</td>
+          <td>
+            <a href="{{ url_for('orcamentos.detalhe', id=o.id) }}" class="btn btn-secondary btn-sm">Ver</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="page-subtitle" style="padding:1rem">Nenhum orçamento encontrado.</p>
+  {% endif %}
+</div>
+{% endblock %}

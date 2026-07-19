@@ -154,3 +154,32 @@ CREATE TABLE IF NOT EXISTS pagamentos (
 
 CREATE INDEX IF NOT EXISTS idx_pagamentos_status ON pagamentos(status);
 CREATE INDEX IF NOT EXISTS idx_pagamentos_paciente ON pagamentos(paciente_id);
+
+CREATE TABLE IF NOT EXISTS orcamentos (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_id      INTEGER NOT NULL REFERENCES pacientes(id),
+    profissional_id  INTEGER REFERENCES profissionais(id),
+    status           TEXT NOT NULL DEFAULT 'rascunho'
+                     CHECK(status IN ('rascunho','enviado','aprovado','recusado','expirado')),
+    validade_dias    INTEGER NOT NULL DEFAULT 30,
+    desconto_global  REAL NOT NULL DEFAULT 0,
+    desconto_tipo    TEXT NOT NULL DEFAULT 'percentual'
+                     CHECK(desconto_tipo IN ('percentual','valor')),
+    observacoes      TEXT,
+    token_aprovacao  TEXT UNIQUE,
+    criado_em        TEXT NOT NULL DEFAULT (datetime('now')),
+    atualizado_em    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_orcamentos_status   ON orcamentos(status);
+CREATE INDEX IF NOT EXISTS idx_orcamentos_paciente ON orcamentos(paciente_id);
+
+CREATE TABLE IF NOT EXISTS orcamento_itens (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    orcamento_id    INTEGER NOT NULL REFERENCES orcamentos(id) ON DELETE CASCADE,
+    procedimento_id INTEGER NOT NULL REFERENCES procedimentos(id),
+    quantidade      INTEGER NOT NULL DEFAULT 1,
+    valor_unitario  REAL NOT NULL,
+    desconto_item   REAL NOT NULL DEFAULT 0,
+    desconto_tipo   TEXT NOT NULL DEFAULT 'percentual'
+                    CHECK(desconto_tipo IN ('percentual','valor'))
+);
