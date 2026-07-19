@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Contas a Receber{% endblock %}
 {% block content %}
+
 <div class="page-header">
   <div>
     <div class="page-title">Contas a Receber</div>
@@ -29,47 +30,53 @@
     <table>
       <thead>
         <tr>
-          <th>Paciente</th><th>Origem</th><th>Valor</th>
-          <th>Vencimento</th><th>Situação</th><th></th>
+          <th>Paciente</th>
+          <th>Origem</th>
+          <th>Valor</th>
+          <th>Vencimento</th>
+          <th>Situação</th>
+          <th style="text-align:center">Ação</th>
         </tr>
       </thead>
       <tbody>
         {% for p in dados.pagamentos %}
         {% set atrasado = p.data_vencimento < hoje.isoformat() %}
+        {% if atrasado %}
+          {% set dias_atraso = (hoje - (hoje.__class__.fromisoformat(p.data_vencimento))).days %}
+        {% endif %}
         <tr>
           <td>
             <strong>{{ p.paciente_nome }}</strong>
-            {% if p.paciente_telefone %}<br><span class="page-subtitle">{{ p.paciente_telefone }}</span>{% endif %}
-          </td>
-          <td>{{ p.procedimento_nome if p.agendamento_id else 'Mensalidade' }}</td>
-          <td>R$ {{ '%.2f'|format(p.valor) }}</td>
-          <td>{{ p.data_vencimento }}</td>
-          <td>
-            {% if atrasado %}
-            <span class="badge badge-falta">Atrasado</span>
-            {% else %}
-            <span class="badge badge-agendado">No prazo</span>
+            {% if p.paciente_telefone %}
+            <br><span style="font-size:.8rem;color:var(--text-muted)">{{ p.paciente_telefone }}</span>
             {% endif %}
           </td>
+          <td style="color:var(--text-muted);font-size:.875rem">
+            {{ p.procedimento_nome if p.agendamento_id else 'Mensalidade' }}
+          </td>
           <td>
-            <button type="button" class="btn btn-primary btn-sm"
-                    onclick="document.getElementById('pagar-{{ p.id }}').classList.toggle('hidden-form')">
-              Registrar pagamento
+            <strong style="font-size:.95rem">R$ {{ '%.2f'|format(p.valor) }}</strong>
+          </td>
+          <td style="font-size:.875rem">
+            {{ p.data_vencimento[8:10] }}/{{ p.data_vencimento[5:7] }}/{{ p.data_vencimento[:4] }}
+          </td>
+          <td>
+            {% if atrasado %}
+              <span class="badge badge-cancelado">Atrasado</span>
+              <br><span style="font-size:.72rem;color:var(--danger)">{{ dias_atraso }} dia(s)</span>
+            {% else %}
+              <span class="badge badge-confirmado">No prazo</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center">
+            <button type="button" class="btn btn-primary btn-sm btn-pagar"
+                    data-id="{{ p.id }}"
+                    data-paciente="{{ p.paciente_nome }}"
+                    data-valor="R$ {{ '%.2f'|format(p.valor) }}"
+                    data-origem="{{ p.procedimento_nome if p.agendamento_id else 'Mensalidade' }}"
+                    data-action="{{ url_for('financeiro.pagar', id=p.id) }}">
+              💳 Receber
             </button>
-            <form id="pagar-{{ p.id }}" method="POST"
-                  action="{{ url_for('financeiro.pagar', id=p.id) }}"
-                  class="hidden-form" style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
-              <select name="forma_pagamento" class="form-control" required style="width:150px">
-                <option value="">Forma…</option>
-                <option value="dinheiro">Dinheiro</option>
-                <option value="pix">Pix</option>
-                <option value="cartao_debito">Cartão débito</option>
-                <option value="cartao_credito">Cartão crédito</option>
-              </select>
-              <input type="date" name="data_pagamento" class="form-control" style="width:150px">
-              <input type="text" name="observacoes" class="form-control" placeholder="Observação (opcional)">
-              <button type="submit" class="btn btn-primary btn-sm">Confirmar</button>
-            </form>
           </td>
         </tr>
         {% endfor %}
@@ -77,7 +84,260 @@
     </table>
   </div>
   {% else %}
-  <p class="page-subtitle">Nenhuma conta a receber no momento.</p>
+  <div style="text-align:center;padding:2.5rem 1rem;color:var(--text-muted)">
+    <div style="font-size:2.5rem;margin-bottom:.75rem">✅</div>
+    <div style="font-weight:600;font-size:1rem">Nenhuma conta pendente</div>
+    <div style="font-size:.85rem;margin-top:.25rem">Todos os pagamentos estão em dia.</div>
+  </div>
   {% endif %}
 </div>
+
+<!-- ── Modal de pagamento ── -->
+<div class="fin-overlay" id="finOverlay"></div>
+
+<div class="fin-modal" id="finModal" role="dialog" aria-modal="true" aria-labelledby="finModalTitle">
+  <div class="fin-modal-header">
+    <div>
+      <div class="fin-modal-title" id="finModalTitle">Registrar Recebimento</div>
+      <div class="fin-modal-sub" id="finModalSub"></div>
+    </div>
+    <button type="button" class="fin-modal-close" id="finModalClose" aria-label="Fechar">✕</button>
+  </div>
+
+  <form method="POST" id="finForm">
+    <div class="fin-modal-body">
+
+      <div class="fin-resumo" id="finResumo"></div>
+
+      <div class="form-group">
+        <label for="finForma">Forma de pagamento <span style="color:var(--danger)">*</span></label>
+        <div class="fin-forma-grid">
+          <label class="fin-forma-card">
+            <input type="radio" name="forma_pagamento" value="dinheiro" required>
+            <span>💵 Dinheiro</span>
+          </label>
+          <label class="fin-forma-card">
+            <input type="radio" name="forma_pagamento" value="pix">
+            <span>⚡ Pix</span>
+          </label>
+          <label class="fin-forma-card">
+            <input type="radio" name="forma_pagamento" value="cartao_debito">
+            <span>💳 Débito</span>
+          </label>
+          <label class="fin-forma-card">
+            <input type="radio" name="forma_pagamento" value="cartao_credito">
+            <span>💳 Crédito</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="finData">Data do recebimento <span style="color:var(--danger)">*</span></label>
+        <input type="date" id="finData" name="data_pagamento" class="form-control" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0">
+        <label for="finObs">Observação <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+        <input type="text" id="finObs" name="observacoes" class="form-control"
+               placeholder="Ex: parcela 1/3, cheque nº …">
+      </div>
+
+    </div>
+
+    <div class="fin-modal-footer">
+      <button type="button" class="btn btn-ghost" id="finCancelar">Cancelar</button>
+      <button type="submit" class="btn btn-success">✔ Confirmar Recebimento</button>
+    </div>
+  </form>
+</div>
+
+<style>
+  /* ── Modal overlay ── */
+  .fin-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 400;
+    backdrop-filter: blur(2px);
+  }
+  .fin-overlay.visible { display: block; }
+
+  /* ── Modal box ── */
+  .fin-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -48%);
+    width: 100%;
+    max-width: 460px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    z-index: 500;
+    overflow: hidden;
+    transition: transform .18s ease, opacity .18s ease;
+    opacity: 0;
+  }
+  .fin-modal.visible {
+    display: block;
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+
+  /* ── Header ── */
+  .fin-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: #000080;
+  }
+  .fin-modal-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .fin-modal-sub {
+    font-size: .8rem;
+    color: rgba(255,255,255,.7);
+    margin-top: .2rem;
+  }
+  .fin-modal-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.7);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: .1rem .3rem;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color .15s, background .15s;
+  }
+  .fin-modal-close:hover { color: #fff; background: rgba(255,255,255,.12); }
+
+  /* ── Body ── */
+  .fin-modal-body { padding: 1.25rem 1.5rem; }
+
+  .fin-resumo {
+    background: #f0f6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: .875rem;
+    color: #1e3a8a;
+    font-weight: 600;
+  }
+
+  /* ── Forma de pagamento em cards ── */
+  .fin-forma-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+    margin-top: .35rem;
+  }
+
+  .fin-forma-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: .6rem .5rem;
+    cursor: pointer;
+    font-size: .855rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: border-color .14s, background .14s, color .14s;
+    user-select: none;
+    gap: .4rem;
+  }
+  .fin-forma-card input { display: none; }
+  .fin-forma-card:hover {
+    border-color: #000080;
+    color: #000080;
+    background: #f0f4ff;
+  }
+  .fin-forma-card:has(input:checked) {
+    border-color: #000080;
+    background: #000080;
+    color: #fff;
+  }
+
+  /* ── Footer ── */
+  .fin-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: .75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: #f9fafb;
+  }
+
+  @media (max-width: 500px) {
+    .fin-modal { max-width: 95vw; }
+    .fin-forma-grid { grid-template-columns: 1fr 1fr; }
+    .fin-modal-footer { flex-direction: column-reverse; }
+    .fin-modal-footer .btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<script>
+(function () {
+  const overlay  = document.getElementById('finOverlay');
+  const modal    = document.getElementById('finModal');
+  const form     = document.getElementById('finForm');
+  const sub      = document.getElementById('finModalSub');
+  const resumo   = document.getElementById('finResumo');
+  const dataInp  = document.getElementById('finData');
+  const obsInp   = document.getElementById('finObs');
+  const closeBtn = document.getElementById('finModalClose');
+  const cancelBtn= document.getElementById('finCancelar');
+
+  // preenche data padrão = hoje
+  const hoje = new Date().toISOString().slice(0, 10);
+  dataInp.value = hoje;
+
+  function openModal(btn) {
+    const paciente = btn.dataset.paciente;
+    const valor    = btn.dataset.valor;
+    const origem   = btn.dataset.origem;
+    const action   = btn.dataset.action;
+
+    form.action = action;
+    sub.textContent = paciente;
+    resumo.textContent = origem + ' · ' + valor;
+    dataInp.value = hoje;
+    obsInp.value  = '';
+    // limpa seleção de forma
+    form.querySelectorAll('input[name="forma_pagamento"]').forEach(r => r.checked = false);
+
+    overlay.classList.add('visible');
+    modal.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    overlay.classList.remove('visible');
+    modal.classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.btn-pagar').forEach(function (btn) {
+    btn.addEventListener('click', function () { openModal(btn); });
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', closeModal);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeModal();
+  });
+})();
+</script>
+
 {% endblock %}
